@@ -86,7 +86,8 @@ fun LevelSelectScreen(
     progressState: AppProgressState,
     onBackHome: () -> Unit,
     onSelectLevel: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    debugUnlockAll: Boolean = false
 ) {
     val backdropState = remember { MeadowBackdropState() }
     val gridState = rememberLazyGridState()
@@ -139,7 +140,8 @@ fun LevelSelectScreen(
                     val unlocked = PuzzleLevels.isUnlocked(
                         level = level,
                         unlockedAll = progressState.unlockedAll,
-                        extraUnlockedIds = progressState.unlockedLevelIds
+                        extraUnlockedIds = progressState.unlockedLevelIds,
+                        debugUnlockAll = debugUnlockAll
                     )
                     val earnedStars = progressState.starsFor(level.id)
                     StorybookLevelCard(

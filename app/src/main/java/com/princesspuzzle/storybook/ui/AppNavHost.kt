@@ -12,6 +12,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.princesspuzzle.storybook.BuildConfig
 import com.princesspuzzle.storybook.data.ProgressRepositoryProvider
 import com.princesspuzzle.storybook.puzzle.PuzzleLevels
 import com.princesspuzzle.storybook.puzzle.PuzzleViewModel
@@ -37,6 +38,7 @@ fun PrincessPuzzleNavHost(initialBenchmarkLevelId: Int? = null) {
     val progressState by progressRepository.progressFlow.collectAsState()
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
+    val debugUnlockAll = BuildConfig.DEBUG && BuildConfig.UNLOCK_ALL_FOR_DEBUG
     val startRoute = remember(initialBenchmarkLevelId) {
         if (initialBenchmarkLevelId != null) Routes.puzzlePlay(initialBenchmarkLevelId) else Routes.HOME
     }
@@ -65,7 +67,8 @@ fun PrincessPuzzleNavHost(initialBenchmarkLevelId: Int? = null) {
                     navController.navigate(Routes.puzzlePlay(levelId)) {
                         launchSingleTop = true
                     }
-                }
+                },
+                debugUnlockAll = debugUnlockAll
             )
         }
 
@@ -90,7 +93,8 @@ fun PrincessPuzzleNavHost(initialBenchmarkLevelId: Int? = null) {
                     val canOpenNext = next != null && PuzzleLevels.isUnlocked(
                         level = next,
                         unlockedAll = curProgress.unlockedAll,
-                        extraUnlockedIds = curProgress.unlockedLevelIds
+                        extraUnlockedIds = curProgress.unlockedLevelIds,
+                        debugUnlockAll = debugUnlockAll
                     )
                     if (canOpenNext) {
                         scope.launch { progressRepository.setLastSelectedLevelId(next.id) }

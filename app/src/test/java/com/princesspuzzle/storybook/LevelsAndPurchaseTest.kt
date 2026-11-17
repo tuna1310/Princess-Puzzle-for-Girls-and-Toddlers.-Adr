@@ -48,4 +48,12 @@ class LevelsAndPurchaseTest {
         service.resetSimulatedPurchase()
         assertFalse(PuzzleLevels.isUnlocked(PuzzleLevels.getById(5), service.isUnlockedAll()))
     }
+
+    @Test
+    fun `debug unlock override opens all 16 levels without changing default release rule`() {
+        for (level in PuzzleLevels.ALL) {
+            assertTrue(PuzzleLevels.isUnlocked(level, unlockedAll = false, debugUnlockAll = true))
+        }
+        assertFalse(PuzzleLevels.isUnlocked(PuzzleLevels.getById(5), unlockedAll = false))
+    }
 }

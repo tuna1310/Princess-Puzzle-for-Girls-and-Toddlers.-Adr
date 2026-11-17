@@ -193,6 +193,10 @@ object PuzzleLevels {
         return if (index >= 0) ALL.getOrNull(index + 1) else null
     }
 
-    fun isUnlocked(level: LevelDefinition, unlockedAll: Boolean, extraUnlockedIds: Set<Int> = emptySet()): Boolean =
-        level.free || unlockedAll || level.id in extraUnlockedIds
+    fun isUnlocked(
+        level: LevelDefinition,
+        unlockedAll: Boolean,
+        extraUnlockedIds: Set<Int> = emptySet(),
+        debugUnlockAll: Boolean = false
+    ): Boolean = level.free || unlockedAll || debugUnlockAll || level.id in extraUnlockedIds
 }

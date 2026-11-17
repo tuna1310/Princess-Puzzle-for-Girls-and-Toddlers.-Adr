@@ -46,11 +46,13 @@ android {
             applicationIdSuffix = ".debug"
             isDebuggable = true
             buildConfigField("boolean", "ALLOW_BENCHMARK_INTENT", "true")
+            buildConfigField("boolean", "UNLOCK_ALL_FOR_DEBUG", "true")
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             buildConfigField("boolean", "ALLOW_BENCHMARK_INTENT", "false")
+            buildConfigField("boolean", "UNLOCK_ALL_FOR_DEBUG", "false")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -68,6 +70,7 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
             buildConfigField("boolean", "ALLOW_BENCHMARK_INTENT", "true")
+            buildConfigField("boolean", "UNLOCK_ALL_FOR_DEBUG", "false")
         }
     }
 
