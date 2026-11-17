@@ -264,3 +264,110 @@ fun DrawScope.drawRoundedBox(
         )
     }
 }
+
+fun DrawScope.drawLeaf(cx: Float, cy: Float, length: Float, angleDeg: Float, fill: Color, strokeWidth: Float = 2f) {
+    val leafPath = Path().apply {
+        moveTo(-length * 0.5f, 0f)
+        quadraticTo(0f, -length * 0.34f, length * 0.5f, 0f)
+        quadraticTo(0f, length * 0.34f, -length * 0.5f, 0f)
+        close()
+    }
+    translate(cx, cy) {
+        rotate(angleDeg, pivot = Offset.Zero) {
+            drawPath(leafPath, fill)
+            drawPath(leafPath, StorybookPalette.Ink, style = Stroke(strokeWidth, join = StrokeJoin.Round))
+        }
+    }
+}
+
+fun DrawScope.drawMusicNote(
+    cx: Float,
+    cy: Float,
+    size: Float,
+    color: Color,
+    strokeWidth: Float = 2f,
+    alpha: Float = 1f
+) {
+    drawOval(
+        color = color,
+        topLeft = Offset(cx - size * 0.55f, cy + size * 0.12f),
+        size = Size(size * 0.52f, size * 0.38f),
+        alpha = alpha
+    )
+    drawLine(
+        color = color,
+        start = Offset(cx - size * 0.08f, cy + size * 0.25f),
+        end = Offset(cx - size * 0.08f, cy - size * 0.55f),
+        strokeWidth = strokeWidth,
+        cap = StrokeCap.Round,
+        alpha = alpha
+    )
+    val flag = Path().apply {
+        moveTo(cx - size * 0.08f, cy - size * 0.55f)
+        quadraticTo(cx + size * 0.48f, cy - size * 0.4f, cx + size * 0.35f, cy - size * 0.1f)
+    }
+    drawPath(flag, color = color, alpha = alpha, style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
+}
+
+fun DrawScope.drawPaperLantern(
+    cx: Float,
+    cy: Float,
+    w: Float,
+    h: Float,
+    bodyColor: Color,
+    glowColor: Color,
+    strokeWidth: Float = 2f,
+    alpha: Float = 1f
+) {
+    drawCircle(glowColor, radius = w * 1.1f, center = Offset(cx, cy), alpha = alpha * 0.35f)
+    val tl = Offset(cx - w * 0.5f, cy - h * 0.5f)
+    val sz = Size(w, h)
+    drawRoundRect(bodyColor, topLeft = tl, size = sz, cornerRadius = CornerRadius(w * 0.38f), alpha = alpha)
+    drawRoundRect(
+        StorybookPalette.Ink,
+        topLeft = tl,
+        size = sz,
+        cornerRadius = CornerRadius(w * 0.38f),
+        alpha = alpha,
+        style = Stroke(strokeWidth)
+    )
+    drawRoundRect(
+        Color(0xFFFFE17D),
+        topLeft = Offset(cx - w * 0.3f, cy - h * 0.5f - h * 0.08f),
+        size = Size(w * 0.6f, h * 0.12f),
+        cornerRadius = CornerRadius(w * 0.1f),
+        alpha = alpha
+    )
+    drawRoundRect(
+        Color(0xFFFFE17D),
+        topLeft = Offset(cx - w * 0.28f, cy + h * 0.45f),
+        size = Size(w * 0.56f, h * 0.1f),
+        cornerRadius = CornerRadius(w * 0.08f),
+        alpha = alpha
+    )
+}
+
+fun DrawScope.drawCrescentMoon(cx: Float, cy: Float, radius: Float, fill: Color, strokeWidth: Float = 2f) {
+    val crescent = Path().apply {
+        moveTo(cx + radius * 0.25f, cy - radius * 0.92f)
+        cubicTo(
+            cx - radius * 0.95f,
+            cy - radius * 0.85f,
+            cx - radius * 0.95f,
+            cy + radius * 0.85f,
+            cx + radius * 0.25f,
+            cy + radius * 0.92f
+        )
+        cubicTo(
+            cx - radius * 0.25f,
+            cy + radius * 0.55f,
+            cx - radius * 0.25f,
+            cy - radius * 0.55f,
+            cx + radius * 0.25f,
+            cy - radius * 0.92f
+        )
+        close()
+    }
+    drawPath(crescent, fill)
+    drawPath(crescent, StorybookPalette.Ink, style = Stroke(strokeWidth, join = StrokeJoin.Round))
+}

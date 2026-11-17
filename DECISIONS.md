@@ -30,6 +30,10 @@
    - **Decision**: Cached static sky/hills/stream terrain into a viewport `ImageBitmap` in `MeadowBackdropState`, pre-baked clipped jigsaw piece sprites into `PieceGeometryCache`, and paced Compose `withFrameNanos` redraws at 15 Hz when idle while snapping immediately to 60 Hz during drag, bounce, snap glow, hint shimmer, or celebration. Tuned `gradle.properties` (`-Xmx1536m`, `kotlin.daemon.jvmargs=-Xmx768m`, `idletimeout=120000`, `workers.max=1`) for single-daemon low-RAM builds.
    - **Rationale**: Eliminates per-frame `Brush`/shader/path-clipping overhead on mid-range devices and software renderers while keeping build memory bounded on 8 GB workstations.
 
+8. **Single-Source Level Catalog & LRU Artwork Cache (Step 3)**
+   - **Decision**: Consolidated all 16 level definitions, piece counts (fixed 2..12 per level; removed release piece-count switcher via `BuildConfig.DEBUG`), and unlock queries in `PuzzleLevels.kt`, backed by an LRU `ImageBitmap` cache (`ARTWORK_LRU_CAPACITY = 3`) plus `200px` thumbnail cache in `SceneIllustrations.kt` and 16 unique per-theme celebration animations in `LivingCelebrations.kt`.
+   - **Rationale**: Keeps adding new levels trivial while preventing heap bloat across all 16 scenes (`~3x` full-resolution bitmaps active at once instead of 16).
+
 ---
 
 ## Archive: Earlier Web Prototype Decisions (2026-11-17)

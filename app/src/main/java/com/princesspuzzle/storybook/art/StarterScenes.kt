@@ -509,11 +509,3 @@ private fun DrawScope.drawCastleTower(
     drawPath(roof, roofCol)
     drawPath(roof, StorybookPalette.Ink, style = Stroke(inkW, join = StrokeJoin.Round))
 }
-
-internal fun DrawScope.drawStarterMedallionScene(s: Float) {
-    drawSceneSkyAndMeadow(s, Color(0xFFF6E7FF), Color(0xFFDFF4FF), Color(0xFFBBE6A4))
-    drawCircle(Color(0xC7FFFFFF), radius = s * 0.31f, center = Offset(s * 0.5f, s * 0.5f))
-    drawHeart(s * 0.5f, s * 0.52f, s * 0.18f, Color(0xFFE2C3FF), StorybookPalette.Ink, s * 0.018f)
-    drawSparkle(s * 0.32f, s * 0.34f, s * 0.045f, Color(0xFFFFFDF2))
-    drawSparkle(s * 0.68f, s * 0.35f, s * 0.04f, Color(0xFFFFE987))
-}

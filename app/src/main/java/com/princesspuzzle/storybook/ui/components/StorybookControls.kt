@@ -200,3 +200,25 @@ fun StorybookTopProgressPill(title: String, progressText: String, modifier: Modi
         )
     }
 }
+
+@Composable
+fun StorybookBadgePill(label: String, modifier: Modifier = Modifier, containerColor: Color = Color(PROGRESS_BG)) {
+    val shape = RoundedCornerShape(PILL_CORNER_PERCENT)
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .defaultMinSize(minHeight = PROGRESS_MIN_HEIGHT_DP.dp)
+            .clip(shape)
+            .background(containerColor)
+            .border(PROGRESS_BORDER_DP.dp, StorybookPalette.Ink, shape)
+            .padding(horizontal = PROGRESS_PAD_H_DP.dp, vertical = PROGRESS_PAD_V_DP.dp)
+    ) {
+        Text(
+            text = label,
+            color = StorybookPalette.Ink,
+            fontSize = PROGRESS_FONT_SP.sp,
+            fontWeight = FontWeight.ExtraBold,
+            maxLines = 1
+        )
+    }
+}

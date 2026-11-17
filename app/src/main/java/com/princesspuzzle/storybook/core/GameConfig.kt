@@ -66,7 +66,10 @@ object GameConfig {
     // Parental gate & storage constants
     const val PARENTAL_GATE_HOLD_SECONDS = 3.0f
     const val ARTWORK_CACHE_SIZE_PX = 800
+    const val THUMBNAIL_CACHE_SIZE_PX = 200
+    const val ARTWORK_LRU_CAPACITY = 3
     const val MAX_CONFETTI_PARTICLES = 140
+    const val MAX_STARS = 3
     const val FREE_LEVEL_COUNT = 4
     const val TOTAL_LEVEL_COUNT = 16
 }

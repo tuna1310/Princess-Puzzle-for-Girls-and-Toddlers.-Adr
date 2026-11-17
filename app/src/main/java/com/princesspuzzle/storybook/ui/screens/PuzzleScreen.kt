@@ -53,10 +53,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.princesspuzzle.storybook.BuildConfig
 import com.princesspuzzle.storybook.R
 import com.princesspuzzle.storybook.art.MeadowBackdropState
-import com.princesspuzzle.storybook.art.StarterIllustrations
-import com.princesspuzzle.storybook.art.StarterIllustrations.drawLivingCelebration
+import com.princesspuzzle.storybook.art.SceneIllustrations
+import com.princesspuzzle.storybook.art.SceneIllustrations.drawLivingCelebration
 import com.princesspuzzle.storybook.art.StorybookPalette
 import com.princesspuzzle.storybook.art.drawMeadowBackdrop
 import com.princesspuzzle.storybook.core.GameConfig
@@ -66,6 +67,7 @@ import com.princesspuzzle.storybook.puzzle.PieceStatus
 import com.princesspuzzle.storybook.puzzle.PuzzlePhysicsEngine
 import com.princesspuzzle.storybook.puzzle.PuzzleUiState
 import com.princesspuzzle.storybook.puzzle.PuzzleViewModel
+import com.princesspuzzle.storybook.ui.components.StorybookBadgePill
 import com.princesspuzzle.storybook.ui.components.StorybookCircleBackButton
 import com.princesspuzzle.storybook.ui.components.StorybookPillButton
 import com.princesspuzzle.storybook.ui.components.StorybookStarRow
@@ -184,7 +186,7 @@ fun PuzzleScreen(viewModel: PuzzleViewModel, onNavigateBack: () -> Unit, modifie
     }
 
     val artwork = remember(uiState.level.theme, density) {
-        StarterIllustrations.getOrRenderArtwork(uiState.level.theme, density)
+        SceneIllustrations.getOrRenderArtwork(uiState.level.theme, density)
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -198,7 +200,7 @@ fun PuzzleScreen(viewModel: PuzzleViewModel, onNavigateBack: () -> Unit, modifie
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(uiState.level.id, uiState.pieceCountOverride) {
+                .pointerInput(uiState.level.id) {
                     handlePuzzlePointerInput(viewModel)
                 }
         ) {
@@ -305,12 +307,19 @@ private fun PuzzleTopHud(layout: PuzzleLayout, uiState: PuzzleUiState, viewModel
             )
         }
 
-        StorybookPillButton(
-            label = pluralStringResource(R.plurals.hud_pieces_badge, uiState.totalCount, uiState.totalCount),
-            topColor = StorybookPalette.ButtonBlueTop,
-            bottomColor = StorybookPalette.ButtonBlueBottom,
-            onClick = { viewModel.cycleDemoPuzzle() }
-        )
+        if (BuildConfig.DEBUG) {
+            StorybookPillButton(
+                label = pluralStringResource(R.plurals.hud_pieces_badge, uiState.totalCount, uiState.totalCount),
+                topColor = StorybookPalette.ButtonBlueTop,
+                bottomColor = StorybookPalette.ButtonBlueBottom,
+                onClick = { viewModel.advanceToNextLevel() }
+            )
+        } else {
+            StorybookBadgePill(
+                label = pluralStringResource(R.plurals.hud_pieces_badge, uiState.totalCount, uiState.totalCount),
+                containerColor = StorybookPalette.ButtonBlueTop
+            )
+        }
     }
 }
 

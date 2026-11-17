@@ -2,6 +2,11 @@
 
 All notable changes to **Princess Storybook Puzzle** are documented here.
 
+## Android Step 3 — Full 16 Levels, Original Scenes & Unique Living Rewards
+- Completed original pastel illustrations for Levels 5–16 (`EnchantedScenesA.kt`, `EnchantedScenesB.kt`) covering 5 to 12 pieces progressively, with English titles stored in `strings.xml`.
+- Implemented 16 unique non-repeating living reward animations (`LivingCelebrations.kt`) tailored to each theme (bubbles, rotating carriage wheels, drifting willow leaves, teapot steam, fireflies, harp sound waves, pond ripples, comet streaks, sky lanterns, marquee lights, chandelier prisms).
+- Consolidated level metadata in `PuzzleLevels.kt` as a single source of truth, bounded artwork memory with an LRU cache + `200px` thumbnail generator in `SceneIllustrations.kt`, and removed interactive piece-count switching from normal release play (`BuildConfig.DEBUG` gated).
+
 ## Android Step 2 — Jigsaw Slicer Port, Drop/Bounce Physics, Anti-Stuck, Hints & Rotation
 - Ported watertight multi-row Bezier jigsaw slicer (`JigsawSlicer.kt`) supporting 2 to 12 pieces with pure-Kotlin curve geometry and Compose `Path` builders.
 - Implemented zero-allocation `withFrameNanos` drag, snap, and spring-bounce return physics (`PuzzlePhysicsEngine.kt`) with upward touch-lift offset, multi-touch pointer isolation, viewport clamping, and anti-stuck timeout recovery.

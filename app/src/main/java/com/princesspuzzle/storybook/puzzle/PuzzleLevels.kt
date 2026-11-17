@@ -2,6 +2,7 @@ package com.princesspuzzle.storybook.puzzle
 
 import androidx.annotation.StringRes
 import com.princesspuzzle.storybook.R
+import com.princesspuzzle.storybook.core.GameConfig
 
 enum class SceneThemeId {
     TIARA,
@@ -181,7 +182,17 @@ object PuzzleLevels {
             )
         )
 
+    val DEFAULT_FREE_IDS: Set<Int> by lazy { ALL.filter { it.free }.map { it.id }.toSet() }
+    val TOTAL_COUNT: Int get() = ALL.size
+    val MAX_TOTAL_STARS: Int get() = ALL.size * GameConfig.MAX_STARS
+
     fun getById(id: Int): LevelDefinition = ALL.firstOrNull { it.id == id } ?: ALL.first()
 
-    fun isUnlocked(level: LevelDefinition, unlockedAll: Boolean): Boolean = level.free || unlockedAll
+    fun nextAfter(levelId: Int): LevelDefinition? {
+        val index = ALL.indexOfFirst { it.id == levelId }
+        return if (index >= 0) ALL.getOrNull(index + 1) else null
+    }
+
+    fun isUnlocked(level: LevelDefinition, unlockedAll: Boolean, extraUnlockedIds: Set<Int> = emptySet()): Boolean =
+        level.free || unlockedAll || level.id in extraUnlockedIds
 }

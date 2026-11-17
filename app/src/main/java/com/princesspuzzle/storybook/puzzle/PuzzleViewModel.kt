@@ -40,7 +40,6 @@ data class PieceGeometryCache(
 
 data class PuzzleUiState(
     val level: LevelDefinition = PuzzleLevels.getById(2),
-    val pieceCountOverride: Int? = null,
     val placedCount: Int = 0,
     val totalCount: Int = 3,
     val completed: Boolean = false,
@@ -55,28 +54,10 @@ private const val SNAP_SPARKLE_RADIUS_RATIO = 0.25f
 private const val SPRITE_PAD_DP = 2f
 private const val GLOW_ACTIVE_EPSILON = 0.01f
 
-private val DEMO_SEQUENCE = listOf(
-    // Level 2: Clover Bunny Princess (3 pieces - Step 1 & 2 default)
-    2 to 3,
-    // Level 1: Starlight Tiara (2 pieces)
-    1 to 2,
-    // Level 3: Cloudberry Unicorn (4 pieces)
-    3 to 4,
-    // Level 4: Cupcake Blossom Castle (4 pieces)
-    4 to 4,
-    // 6-piece grid demo on Unicorn
-    3 to 6,
-    // 9-piece grid demo on Castle
-    4 to 9,
-    // 12-piece grid demo on Bunny Princess
-    2 to 12
-)
-
 class PuzzleViewModel(
     private val audio: AudioEngine = NoOpAudioEngine
 ) : ViewModel() {
 
-    private var demoCursor = 0
     private val _uiState = MutableStateFlow(PuzzleUiState())
     val uiState: StateFlow<PuzzleUiState> = _uiState.asStateFlow()
 
@@ -105,12 +86,12 @@ class PuzzleViewModel(
     private var activePieceCount: Int = 3
 
     init {
-        loadPuzzle(levelId = 2, pieceCount = 3)
+        loadPuzzle(levelId = 2)
     }
 
-    fun loadPuzzle(levelId: Int, pieceCount: Int? = null) {
+    fun loadPuzzle(levelId: Int) {
         val level = PuzzleLevels.getById(levelId)
-        val count = pieceCount ?: level.pieceCount
+        val count = level.pieceCount
         activeLevelId = level.id
         activePieceCount = count
 
@@ -129,7 +110,6 @@ class PuzzleViewModel(
 
         _uiState.value = PuzzleUiState(
             level = level,
-            pieceCountOverride = if (count == level.pieceCount) null else count,
             placedCount = 0,
             totalCount = currentSpecs.size,
             completed = false,
@@ -139,18 +119,17 @@ class PuzzleViewModel(
 
     fun replay() {
         audio.playTap()
-        loadPuzzle(activeLevelId, activePieceCount)
+        loadPuzzle(activeLevelId)
     }
 
-    fun cycleDemoPuzzle() {
+    fun advanceToNextLevel() {
         audio.playTap()
-        demoCursor = (demoCursor + 1) % DEMO_SEQUENCE.size
-        val (lvlId, count) = DEMO_SEQUENCE[demoCursor]
-        loadPuzzle(lvlId, count)
+        val next = PuzzleLevels.nextAfter(activeLevelId)?.id ?: PuzzleLevels.ALL.first().id
+        loadPuzzle(next)
     }
 
     fun nextLevelOrDemo() {
-        cycleDemoPuzzle()
+        advanceToNextLevel()
     }
 
     private fun isLayoutUpToDate(existing: PuzzleLayout?, widthPx: Float, heightPx: Float, density: Float): Boolean {
