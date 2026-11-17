@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#BCE6FF" />
+      <stop offset="55%" stop-color="#FCE4F2" />
+      <stop offset="100%" stop-color="#FFF5D6" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFE787" />
+      <stop offset="100%" stop-color="#F6B94D" />
+    </linearGradient>
+    <linearGradient id="piece" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFB6D9" />
+      <stop offset="100%" stop-color="#D99BF7" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#sky)" />
+  <circle cx="256" cy="280" r="165" fill="#FFFFFF" opacity="0.55" />
+  <!-- Pastel jigsaw piece -->
+  <path
+    d="M156 238 h200 v66 c26 0 26 36 0 36 v66 h-200 v-66 c-26 0-26-36 0-36 z"
+    fill="url(#piece)"
+    stroke="#6E4B7A"
+    stroke-width="12"
+    stroke-linejoin="round"
+  />
+  <!-- Crown resting gently on top -->
+  <path
+    d="M180 222 l18-76 l40 40 l18-52 l18 52 l40-40 l18 76 z"
+    fill="url(#gold)"
+    stroke="#6E4B7A"
+    stroke-width="11"
+    stroke-linejoin="round"
+  />
+  <circle cx="198" cy="138" r="13" fill="#FF8BB8" stroke="#6E4B7A" stroke-width="7" />
+  <circle cx="256" cy="122" r="15" fill="#9EE6FF" stroke="#6E4B7A" stroke-width="7" />
+  <circle cx="314" cy="138" r="13" fill="#FF8BB8" stroke="#6E4B7A" stroke-width="7" />
+  <!-- Twinkle sparkles -->
+  <path d="M116 144 l7 16 l16 7 l-16 7 l-7 16 l-7-16 l-16-7 l16-7 z" fill="#FFFDF5" />
+  <path d="M404 162 l6 12 l12 6 l-12 6 l-6 12 l-6-12 l-12-6 l12-6 z" fill="#FFFDF5" />
+  <path d="M396 364 l8 17 l17 8 l-17 8 l-8 17 l-8-17 l-17-8 l17-8 z" fill="#FFE787" />
+</svg>

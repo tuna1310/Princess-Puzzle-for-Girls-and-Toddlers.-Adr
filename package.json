@@ -1,0 +1,22 @@
+{
+  "name": "princess-storybook-puzzle",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Original pastel storybook jigsaw puzzle web game (PWA) for toddlers and young girls aged 1 to 6.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.50.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0",
+    "vite-plugin-pwa": "^0.21.1",
+    "vitest": "^3.0.5"
+  }
+}
