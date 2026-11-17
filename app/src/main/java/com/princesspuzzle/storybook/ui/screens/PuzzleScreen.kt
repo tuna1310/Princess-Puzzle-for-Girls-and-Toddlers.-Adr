@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -29,11 +30,13 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -49,8 +52,10 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.princesspuzzle.storybook.R
@@ -79,7 +84,7 @@ import kotlinx.coroutines.isActive
 
 private const val HALF = 0.5f
 private const val NANOS_PER_SECOND = 1_000_000_000f
-private const val IDLE_REDRAW_INTERVAL_NANOS = 66_000_000L
+private const val IDLE_REDRAW_INTERVAL_NANOS = 80_000_000L
 private const val COMPACT_TRAY_HEIGHT_DP = 210f
 private const val HINT_VISIBLE_TRAY_HEIGHT_DP = 135f
 private const val WIDE_CELEBRATION_TRAY_WIDTH_DP = 320f
@@ -99,6 +104,8 @@ private const val SEAM_ALPHA_MAX = 0.65f
 private const val CELEBRATION_BREATH_SPEED = 3.2f
 private const val CELEBRATION_BREATH_AMP = 0.01f
 private const val RADIANS_TO_DEGREES = 180f / PI.toFloat()
+private const val ROT_DEG_EPSILON = 0.1f
+private const val SCALE_ONE_EPSILON = 0.005f
 private const val FRAME_PAD_DP = 10f
 private const val FRAME_SHADOW_Y_DP = 5f
 private const val OUTER_CORNER_DP = 22f
@@ -138,7 +145,7 @@ private const val COLOR_BEVEL = 0x8CFFFFFF
 private const val COLOR_SHADOW_HIGH = 0x476A496E
 private const val COLOR_SHADOW_LOW = 0x286A496E
 
-private class RenderScratchCache(density: Float) {
+private class RenderScratchCache(private val density: Float) {
     val backdropState = MeadowBackdropState()
     val clipBoardPath = Path()
     val livingScratchPath = Path()
@@ -154,6 +161,56 @@ private class RenderScratchCache(density: Float) {
     val pieceBevelStroke = Stroke(width = STROKE_BEVEL_DP * density, join = StrokeJoin.Round)
     val pieceOutlineStroke = Stroke(width = STROKE_PIECE_DP * density, join = StrokeJoin.Round)
     val shadowOutlineStroke = Stroke(width = STROKE_SHADOW_DP * density, join = StrokeJoin.Round)
+
+    private val layerDrawScope = CanvasDrawScope()
+    private var staticBoardBitmap: ImageBitmap? = null
+    private var cachedBoardW = -1
+    private var cachedBoardH = -1
+    private var cachedBoardRevision = -1
+
+    fun clearBoardLayer() {
+        staticBoardBitmap = null
+        cachedBoardRevision = -1
+    }
+
+    fun ensureStaticBoardLayer(
+        viewModel: PuzzleViewModel,
+        layout: PuzzleLayout,
+        artwork: ImageBitmap,
+        widthPx: Float,
+        heightPx: Float
+    ): ImageBitmap {
+        val wPx = widthPx.roundToInt().coerceAtLeast(1)
+        val hPx = heightPx.roundToInt().coerceAtLeast(1)
+        val rev = viewModel.boardRevision
+        val existing = staticBoardBitmap
+        val sameSize = cachedBoardW == wPx && cachedBoardH == hPx
+        if (existing != null && sameSize && cachedBoardRevision == rev) {
+            return existing
+        }
+
+        cachedBoardW = wPx
+        cachedBoardH = hPx
+        cachedBoardRevision = rev
+        val bmp = if (existing != null && existing.width == wPx && existing.height == hPx) {
+            existing
+        } else {
+            ImageBitmap(wPx, hPx)
+        }
+        val canvas = Canvas(bmp)
+        layerDrawScope.draw(
+            density = Density(density),
+            layoutDirection = LayoutDirection.Ltr,
+            canvas = canvas,
+            size = Size(widthPx, heightPx)
+        ) {
+            drawImage(backdropState.ensureStaticBitmap(widthPx, heightPx))
+            drawBoardFrameAndTray(layout, Color(viewModel.uiState.value.level.frameHex), this@RenderScratchCache)
+            drawStaticBoardContents(viewModel, layout, artwork, this@RenderScratchCache)
+        }
+        staticBoardBitmap = bmp
+        return bmp
+    }
 }
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -166,24 +223,29 @@ fun PuzzleScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val density = LocalDensity.current.density
-    val scratch = remember(density) { RenderScratchCache(density) }
-    var frameTickNanos by remember { mutableLongStateOf(0L) }
+    val scratch = remember(uiState.level.id, density) { RenderScratchCache(density) }
+    var drawVersion by remember { mutableLongStateOf(0L) }
+
+    DisposableEffect(uiState.level.id) {
+        onDispose { scratch.clearBoardLayer() }
+    }
 
     BackHandler { onNavigateBackToLevels() }
 
     LaunchedEffect(Unit) {
         var lastNanos = 0L
-        var lastRedrawNanos = 0L
+        var lastIdleRedrawNanos = 0L
         while (isActive) {
             withFrameNanos { nanos ->
                 if (lastNanos != 0L) {
                     viewModel.onFrame((nanos - lastNanos) / NANOS_PER_SECOND)
                 }
                 lastNanos = nanos
-                val idleElapsed = nanos - lastRedrawNanos >= IDLE_REDRAW_INTERVAL_NANOS
-                if (lastRedrawNanos == 0L || viewModel.shouldRenderFullRate() || idleElapsed) {
-                    lastRedrawNanos = nanos
-                    frameTickNanos = nanos
+                val idleDue = !viewModel.isDragging() &&
+                    (lastIdleRedrawNanos == 0L || nanos - lastIdleRedrawNanos >= IDLE_REDRAW_INTERVAL_NANOS)
+                if (viewModel.shouldRenderFullRate() || idleDue) {
+                    if (idleDue) lastIdleRedrawNanos = nanos
+                    drawVersion++
                 }
             }
         }
@@ -205,17 +267,30 @@ fun PuzzleScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(uiState.level.id) {
-                    handlePuzzlePointerInput(viewModel)
+                    handlePuzzlePointerInput(viewModel) { drawVersion++ }
                 }
         ) {
             @Suppress("UNUSED_VARIABLE")
-            val tick = frameTickNanos
+            val tick = drawVersion
             val timeSec = viewModel.elapsedTimeSec
-            drawMeadowBackdrop(timeSec, scratch.backdropState)
 
-            if (viewModel.physicsEngine != null) {
-                drawPuzzleScene(viewModel, layout, artwork, timeSec, uiState.completed, scratch)
+            if (uiState.completed) {
+                drawMeadowBackdrop(timeSec, scratch.backdropState)
+                drawPuzzleScene(viewModel, layout, artwork, timeSec, true, scratch)
                 viewModel.particles.draw(this)
+            } else if (viewModel.physicsEngine != null) {
+                val staticLayer = scratch.ensureStaticBoardLayer(
+                    viewModel = viewModel,
+                    layout = layout,
+                    artwork = artwork,
+                    widthPx = size.width,
+                    heightPx = size.height
+                )
+                drawImage(staticLayer)
+                drawDynamicPuzzleOverlay(viewModel, layout, artwork, timeSec, scratch)
+                if (!viewModel.isDragging() && viewModel.particles.hasActiveParticles()) {
+                    viewModel.particles.draw(this)
+                }
             }
         }
 
@@ -244,7 +319,7 @@ fun PuzzleScreen(
     }
 }
 
-private suspend fun PointerInputScope.handlePuzzlePointerInput(viewModel: PuzzleViewModel) {
+private suspend fun PointerInputScope.handlePuzzlePointerInput(viewModel: PuzzleViewModel, onVisualChange: () -> Unit) {
     awaitPointerEventScope {
         while (true) {
             val event = awaitPointerEvent()
@@ -260,28 +335,44 @@ private suspend fun PointerInputScope.handlePuzzlePointerInput(viewModel: Puzzle
                             isTouch = pressed.type == PointerType.Touch,
                             nowMillis = nowMs
                         )
-                        if (grabbed) pressed.consume()
+                        if (grabbed) {
+                            pressed.consume()
+                            onVisualChange()
+                        }
                     }
                 }
                 PointerEventType.Move -> {
+                    var movedPiece = false
                     for (change in event.changes) {
-                        if (change.pressed) {
+                        val moved = change.pressed &&
                             viewModel.onPointerMove(change.id.value, change.position.x, change.position.y, nowMs)
+                        if (moved) {
+                            change.consume()
+                            movedPiece = true
                         }
                     }
+                    if (movedPiece) onVisualChange()
                 }
                 PointerEventType.Release -> {
+                    var released = false
                     for (change in event.changes) {
-                        if (!change.pressed) {
-                            viewModel.onPointerUp(change.id.value, nowMs)
+                        if (!change.pressed && viewModel.onPointerUp(change.id.value, nowMs)) {
+                            released = true
                         }
+                    }
+                    if (released) {
+                        onVisualChange()
                     }
                 }
                 else -> {
+                    var canceled = false
                     for (change in event.changes) {
-                        if (!change.pressed) {
-                            viewModel.onPointerCancel(change.id.value)
+                        if (!change.pressed && viewModel.onPointerCancel(change.id.value)) {
+                            canceled = true
                         }
+                    }
+                    if (canceled) {
+                        onVisualChange()
                     }
                 }
             }
@@ -424,6 +515,107 @@ private fun PuzzleCelebrationPanel(
             }
         }
     }
+}
+
+private fun DrawScope.drawStaticBoardContents(
+    viewModel: PuzzleViewModel,
+    layout: PuzzleLayout,
+    artwork: ImageBitmap,
+    scratch: RenderScratchCache
+) {
+    val engine = viewModel.physicsEngine ?: return
+    val board = layout.board
+    val innerCorner = INNER_CORNER_DP * layout.density
+    scratch.clipBoardPath.reset()
+    scratch.clipBoardPath.addRoundRect(
+        RoundRect(board.x, board.y, board.x + board.w, board.y + board.h, CornerRadius(innerCorner, innerCorner))
+    )
+    val boardIntSize = IntSize(board.w.roundToInt(), board.h.roundToInt())
+    val boardIntOffset = IntOffset(board.x.roundToInt(), board.y.roundToInt())
+
+    clipPath(scratch.clipBoardPath) {
+        drawRect(StorybookPalette.SoftWhite, topLeft = Offset(board.x, board.y), size = Size(board.w, board.h))
+        drawImage(image = artwork, dstOffset = boardIntOffset, dstSize = boardIntSize, alpha = GHOST_IMAGE_ALPHA)
+        translate(board.x, board.y) {
+            for (i in engine.runtimes.indices) {
+                val piece = engine.runtimes[i]
+                val geom = viewModel.geometryCache[piece.spec.id]
+                if (geom != null) {
+                    if (piece.status == PieceStatus.PLACED) {
+                        clipPath(geom.boardPath) {
+                            drawImage(image = artwork, dstOffset = IntOffset.Zero, dstSize = boardIntSize)
+                        }
+                        drawPath(
+                            geom.boardPath,
+                            color = StorybookPalette.Ink,
+                            alpha = SEAM_ALPHA_MAX,
+                            style = scratch.innerRimStroke
+                        )
+                    } else {
+                        drawPath(geom.boardPath, Color(COLOR_DASHED_SLOT), style = scratch.dashedSlotStroke)
+                    }
+                }
+            }
+        }
+    }
+
+    drawRoundRect(
+        color = Color(COLOR_INNER_RIM),
+        topLeft = Offset(board.x, board.y),
+        size = Size(board.w, board.h),
+        cornerRadius = CornerRadius(innerCorner, innerCorner),
+        style = scratch.innerRimStroke
+    )
+}
+
+private fun DrawScope.drawDynamicPuzzleOverlay(
+    viewModel: PuzzleViewModel,
+    layout: PuzzleLayout,
+    artwork: ImageBitmap,
+    timeSec: Float,
+    scratch: RenderScratchCache
+) {
+    val engine = viewModel.physicsEngine ?: return
+    val board = layout.board
+    val boardIntSize = IntSize(board.w.roundToInt(), board.h.roundToInt())
+    val isDragging = viewModel.isDragging()
+    val hintIdx = if (isDragging) -1 else engine.hintPieceIndex
+    val hintPulse = HINT_PULSE_BASE + HINT_PULSE_AMP * abs(sin(timeSec * GameConfig.HINT_PULSE_SPEED))
+
+    // Draw slot highlight only for the single active piece (or idle hint)
+    val activeIdx = engine.activePieceIndex
+    if (activeIdx in engine.runtimes.indices) {
+        val activePiece = engine.runtimes[activeIdx]
+        val activeGeom = viewModel.geometryCache[activePiece.spec.id]
+        if (activeGeom != null && activePiece.glowIntensity > GLOW_THRESHOLD) {
+            val pulse = GLOW_PULSE_BASE + sin(timeSec * GLOW_PULSE_SPEED) * GLOW_PULSE_AMP
+            translate(board.x, board.y) {
+                drawPath(activeGeom.boardPath, StorybookPalette.SlotGlowFill, alpha = activePiece.glowIntensity * pulse)
+                drawPath(
+                    activeGeom.boardPath,
+                    StorybookPalette.SlotGlowStroke,
+                    alpha = activePiece.glowIntensity * GLOW_STROKE_ALPHA,
+                    style = scratch.glowStroke
+                )
+            }
+        }
+    } else if (hintIdx in engine.runtimes.indices) {
+        val hintPiece = engine.runtimes[hintIdx]
+        val hintGeom = viewModel.geometryCache[hintPiece.spec.id]
+        if (hintPiece.status != PieceStatus.PLACED && hintGeom != null) {
+            translate(board.x, board.y) {
+                drawPath(hintGeom.boardPath, StorybookPalette.SlotGlowFill, alpha = HINT_SLOT_ALPHA * hintPulse)
+                drawPath(
+                    hintGeom.boardPath,
+                    StorybookPalette.SlotGlowStroke,
+                    alpha = HINT_STROKE_ALPHA * hintPulse,
+                    style = scratch.hintStroke
+                )
+            }
+        }
+    }
+
+    drawFloatingPieceLayers(viewModel, engine, artwork, boardIntSize, hintIdx, hintPulse, scratch)
 }
 
 private fun DrawScope.drawPuzzleScene(
@@ -657,8 +849,10 @@ private fun DrawScope.drawFloatingPiece(
     hintPulse: Float,
     scratch: RenderScratchCache
 ) {
-    val geom = viewModel.geometryCache[piece.spec.id] ?: return
-    val layout = viewModel.currentLayout ?: return
+    val geom = viewModel.geometryCache[piece.spec.id]
+    val layout = viewModel.currentLayout
+    if (geom == null || layout == null) return
+
     val popScale = if (piece.status == PieceStatus.SNAPPING) {
         1f + sin(piece.snapAnimProgress * PI.toFloat()) * GameConfig.SNAP_POP_AMPLITUDE
     } else {
@@ -666,23 +860,78 @@ private fun DrawScope.drawFloatingPiece(
     }
     val totalScale = piece.scale * popScale
     val rotDeg = piece.rotation * RADIANS_TO_DEGREES
-    val elevated = piece.status == PieceStatus.DRAGGING || piece.status == PieceStatus.RETURNING
+    val trayBmp = geom.traySpriteBitmap
+    val dragBmp = geom.spriteBitmap
+    val atTrayTransform = abs(totalScale - piece.trayScale) <= SCALE_ONE_EPSILON && abs(rotDeg) <= ROT_DEG_EPSILON
+    val atDragTransform = abs(totalScale - 1f) <= SCALE_ONE_EPSILON && abs(rotDeg) <= ROT_DEG_EPSILON
 
+    if (piece.status == PieceStatus.TRAY && trayBmp != null && atTrayTransform) {
+        drawImage(trayBmp, topLeft = Offset(piece.x + geom.traySpriteOffsetX, piece.y + geom.traySpriteOffsetY))
+        if (isHinted && hintPulse > HALF) {
+            translate(piece.x, piece.y) {
+                scale(totalScale, totalScale, pivot = Offset.Zero) {
+                    drawPath(
+                        geom.localPath,
+                        color = StorybookPalette.SlotGlowStroke,
+                        style = scratch.pieceOutlineStroke
+                    )
+                }
+            }
+        }
+    } else if (dragBmp != null && atDragTransform) {
+        drawImage(dragBmp, topLeft = Offset(piece.x + geom.spriteOffsetX, piece.y + geom.spriteOffsetY))
+        if (piece.glowIntensity > GLOW_PIECE_BORDER_THRESHOLD) {
+            translate(piece.x, piece.y) {
+                drawPath(
+                    geom.localPath,
+                    color = StorybookPalette.SlotGlowStroke,
+                    style = scratch.pieceOutlineStroke
+                )
+            }
+        }
+    } else {
+        drawTransformedFloatingPiece(
+            piece = piece,
+            geom = geom,
+            layout = layout,
+            artwork = artwork,
+            boardSize = boardSize,
+            totalScale = totalScale,
+            rotDeg = rotDeg,
+            isHinted = isHinted,
+            hintPulse = hintPulse,
+            scratch = scratch
+        )
+    }
+}
+
+private fun DrawScope.drawTransformedFloatingPiece(
+    piece: PieceRuntime,
+    geom: com.princesspuzzle.storybook.puzzle.PieceGeometryCache,
+    layout: PuzzleLayout,
+    artwork: ImageBitmap,
+    boardSize: IntSize,
+    totalScale: Float,
+    rotDeg: Float,
+    isHinted: Boolean,
+    hintPulse: Float,
+    scratch: RenderScratchCache
+) {
+    val dragBmp = geom.spriteBitmap
     translate(piece.x, piece.y) {
         rotate(rotDeg, pivot = Offset.Zero) {
             scale(totalScale, totalScale, pivot = Offset.Zero) {
-                translate(0f, (if (elevated) SHADOW_ELEVATED_Y_DP else SHADOW_REST_Y_DP) * layout.density) {
-                    drawPath(
-                        geom.localPath,
-                        color = if (elevated) Color(COLOR_SHADOW_HIGH) else Color(COLOR_SHADOW_LOW),
-                        style = scratch.shadowOutlineStroke
-                    )
-                }
-
-                val sprite = geom.spriteBitmap
-                if (sprite != null) {
-                    drawImage(sprite, topLeft = Offset(geom.spriteOffsetX, geom.spriteOffsetY))
+                if (dragBmp != null) {
+                    drawImage(dragBmp, topLeft = Offset(geom.spriteOffsetX, geom.spriteOffsetY))
                 } else {
+                    val elevated = piece.status == PieceStatus.DRAGGING || piece.status == PieceStatus.RETURNING
+                    translate(0f, (if (elevated) SHADOW_ELEVATED_Y_DP else SHADOW_REST_Y_DP) * layout.density) {
+                        drawPath(
+                            geom.localPath,
+                            color = if (elevated) Color(COLOR_SHADOW_HIGH) else Color(COLOR_SHADOW_LOW),
+                            style = scratch.shadowOutlineStroke
+                        )
+                    }
                     clipPath(geom.localPath) {
                         drawImage(
                             image = artwork,
@@ -693,15 +942,18 @@ private fun DrawScope.drawFloatingPiece(
                             dstSize = boardSize
                         )
                     }
+                    drawPath(geom.localPath, color = Color(COLOR_BEVEL), style = scratch.pieceBevelStroke)
+                    drawPath(geom.localPath, color = StorybookPalette.Ink, style = scratch.pieceOutlineStroke)
                 }
 
-                drawPath(geom.localPath, color = Color(COLOR_BEVEL), style = scratch.pieceBevelStroke)
-                val outlineColor = when {
-                    piece.glowIntensity > GLOW_PIECE_BORDER_THRESHOLD -> StorybookPalette.SlotGlowStroke
-                    isHinted && hintPulse > HALF -> StorybookPalette.SlotGlowStroke
-                    else -> StorybookPalette.Ink
+                val highlight = piece.glowIntensity > GLOW_PIECE_BORDER_THRESHOLD || (isHinted && hintPulse > HALF)
+                if (highlight) {
+                    drawPath(
+                        geom.localPath,
+                        color = StorybookPalette.SlotGlowStroke,
+                        style = scratch.pieceOutlineStroke
+                    )
                 }
-                drawPath(geom.localPath, color = outlineColor, style = scratch.pieceOutlineStroke)
             }
         }
     }

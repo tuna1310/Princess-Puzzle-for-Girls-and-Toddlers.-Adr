@@ -31,16 +31,19 @@ private object Routes {
 }
 
 @Composable
-fun PrincessPuzzleNavHost() {
+fun PrincessPuzzleNavHost(initialBenchmarkLevelId: Int? = null) {
     val context = LocalContext.current
     val progressRepository = remember(context) { ProgressRepositoryProvider.get(context) }
     val progressState by progressRepository.progressFlow.collectAsState()
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
+    val startRoute = remember(initialBenchmarkLevelId) {
+        if (initialBenchmarkLevelId != null) Routes.puzzlePlay(initialBenchmarkLevelId) else Routes.HOME
+    }
 
     NavHost(
         navController = navController,
-        startDestination = Routes.HOME
+        startDestination = startRoute
     ) {
         composable(Routes.HOME) {
             HomeScreen(

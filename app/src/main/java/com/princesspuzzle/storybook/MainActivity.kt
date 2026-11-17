@@ -8,8 +8,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.princesspuzzle.storybook.puzzle.PuzzleLevels
 import com.princesspuzzle.storybook.ui.PrincessPuzzleNavHost
 import com.princesspuzzle.storybook.ui.theme.PrincessPuzzleTheme
+
+private const val EXTRA_BENCHMARK_LEVEL_ID = "benchmark_level_id"
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,9 +23,17 @@ class MainActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         applyImmersiveFullscreen()
 
+        val benchmarkLevelId = if (BuildConfig.ALLOW_BENCHMARK_INTENT) {
+            intent?.getIntExtra(EXTRA_BENCHMARK_LEVEL_ID, 0)?.takeIf { id ->
+                id in 1..PuzzleLevels.TOTAL_COUNT
+            }
+        } else {
+            null
+        }
+
         setContent {
             PrincessPuzzleTheme {
-                PrincessPuzzleNavHost()
+                PrincessPuzzleNavHost(initialBenchmarkLevelId = benchmarkLevelId)
             }
         }
     }

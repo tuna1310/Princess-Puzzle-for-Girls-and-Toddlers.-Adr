@@ -32,7 +32,8 @@ object GameConfig {
     // Physics simulation (seconds / spring units)
     const val MAX_FRAME_DELTA_SEC = 0.05f
     const val MIN_FRAME_DELTA_SEC = 0.001f
-    const val SCALE_EASE_RATE = 16f
+    const val SCALE_EASE_RATE = 26f
+    const val SCALE_SNAP_EPSILON = 0.005f
     const val GLOW_EASE_RATE = 14f
     const val SNAP_POSITION_EASE_RATE = 22f
     const val SNAP_ANIM_SPEED = 3.8f
@@ -67,8 +68,8 @@ object GameConfig {
     const val PARENTAL_GATE_HOLD_SECONDS = 3.0f
     const val ARTWORK_CACHE_SIZE_PX = 800
     const val THUMBNAIL_CACHE_SIZE_PX = 200
-    const val ARTWORK_LRU_CAPACITY = 3
-    const val MAX_CONFETTI_PARTICLES = 140
+    const val ARTWORK_LRU_CAPACITY = 2
+    const val MAX_CONFETTI_PARTICLES = 64
     const val MAX_STARS = 3
     const val FREE_LEVEL_COUNT = 4
     const val TOTAL_LEVEL_COUNT = 16

@@ -130,6 +130,8 @@ class PuzzlePhysicsEngine(
 
     fun isTrackingPointer(pointerId: Long): Boolean = activePieceIndex >= 0 && activePointerId == pointerId
 
+    fun isActivelyDragging(): Boolean = activePieceIndex >= 0
+
     fun resetInactivityHint() {
         inactivitySec = 0f
         hintPieceIndex = -1
@@ -209,6 +211,9 @@ class PuzzlePhysicsEngine(
         if (isTouch) {
             grabOffsetX *= DRAG_TOUCH_CENTER_BLEND
             grabOffsetY = liftOffset
+            val margin = GameConfig.VIEWPORT_EDGE_MARGIN_DP * layout.density
+            piece.x = (pointerX + grabOffsetX).coerceIn(margin, layout.width - margin)
+            piece.y = (pointerY + grabOffsetY).coerceIn(margin, layout.height - margin)
         }
         lastMoveMillis = nowMillis
     }
@@ -287,7 +292,12 @@ class PuzzlePhysicsEngine(
 
         for (i in runtimes.indices) {
             val piece = runtimes[i]
-            piece.scale += (piece.targetScale - piece.scale) * scaleRate
+            val scaleDiff = piece.targetScale - piece.scale
+            if (abs(scaleDiff) <= GameConfig.SCALE_SNAP_EPSILON) {
+                piece.scale = piece.targetScale
+            } else {
+                piece.scale += scaleDiff * scaleRate
+            }
 
             when (piece.status) {
                 PieceStatus.TRAY -> if (firstTrayIdx < 0) firstTrayIdx = i
@@ -308,7 +318,13 @@ class PuzzlePhysicsEngine(
             }
         }
 
-        val allPlaced = runtimes.isNotEmpty() && runtimes.all { it.status == PieceStatus.PLACED }
+        var allPlaced = runtimes.isNotEmpty()
+        for (i in runtimes.indices) {
+            if (runtimes[i].status != PieceStatus.PLACED) {
+                allPlaced = false
+                break
+            }
+        }
         updateHintTimer(dt, allPlaced, anyBusy, firstTrayIdx)
         stepResult.placedCount = placedOrSnappingCount
         stepResult.allCompleted = allPlaced

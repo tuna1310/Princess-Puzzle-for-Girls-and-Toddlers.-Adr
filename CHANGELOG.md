@@ -2,6 +2,11 @@
 
 All notable changes to **Princess Storybook Puzzle** are documented here.
 
+## Fixes — Drag-and-Drop 60 FPS Performance Optimization
+- Added `releaseTestable` profileable R8 build type (`ALLOW_BENCHMARK_INTENT`, debug-signed `.profile` ID) for real-device `dumpsys gfxinfo framestats` measurement on `CPH2471` (Android 12, 12-piece Level 16).
+- Eliminated per-frame path tessellation and touch latency: cached Layer 1 static board (`staticBoardBitmap` rebuilt only on resize/snap), baked dual-resolution native piece quads (`spriteBitmap` + `traySpriteBitmap`), paused idle background/confetti updates during active drags, bounded `SceneIllustrations` LRU (`ARTWORK_LRU_CAPACITY = 2`), and updated piece coordinates synchronously inside pointer events.
+- Verified on-device 30.6s continuous 12-piece drag (`CPH2471` `releaseTestable`): `Janky frames (legacy)` dropped from `16.54%` to `0.00%` (`0 / 1839` frames), `50th/95th/99th` percentiles improved from `19/20/21 ms` to `8/10/15 ms`, and `0` frames exceeded `32 ms`.
+
 ## Android Step 4 — Home Screen, 16-Level Grid, Rotation & DataStore Persistence
 - Added custom storybook `HomeScreen` featuring the self-designed crown & ribbon logo crest, slowly revolving storybook preview medallion wheel, star summary pill, large `>= 80dp` `Play` button, and placeholder `Grown-Ups` corner button.
 - Added adaptive `LevelSelectScreen` grid displaying all 16 levels with `200px` cached procedural thumbnails, star rows, free/locked indicators (Levels 1–4 free, 5–16 locked behind gentle parental pack notice), and rotation-safe scroll state.

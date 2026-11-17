@@ -45,10 +45,12 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
+            buildConfigField("boolean", "ALLOW_BENCHMARK_INTENT", "true")
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            buildConfigField("boolean", "ALLOW_BENCHMARK_INTENT", "false")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -56,6 +58,16 @@ android {
             signingConfigs.findByName("release")?.let {
                 signingConfig = it
             }
+        }
+        create("releaseTestable") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".profile"
+            isDebuggable = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            buildConfigField("boolean", "ALLOW_BENCHMARK_INTENT", "true")
         }
     }
 

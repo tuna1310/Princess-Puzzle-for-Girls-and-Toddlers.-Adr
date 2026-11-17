@@ -1,13 +1,18 @@
 package com.princesspuzzle.storybook.puzzle
 
 import android.graphics.Region
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
@@ -16,11 +21,13 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.princesspuzzle.storybook.art.ConfettiParticleSystem
+import com.princesspuzzle.storybook.art.StorybookPalette
 import com.princesspuzzle.storybook.audio.AudioEngine
 import com.princesspuzzle.storybook.audio.NoOpAudioEngine
 import com.princesspuzzle.storybook.core.GameConfig
 import com.princesspuzzle.storybook.core.PuzzleLayout
 import com.princesspuzzle.storybook.core.computePuzzleLayout
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -36,7 +43,10 @@ data class PieceGeometryCache(
     val hitRegion: Region,
     val spriteBitmap: ImageBitmap? = null,
     val spriteOffsetX: Float = 0f,
-    val spriteOffsetY: Float = 0f
+    val spriteOffsetY: Float = 0f,
+    val traySpriteBitmap: ImageBitmap? = null,
+    val traySpriteOffsetX: Float = 0f,
+    val traySpriteOffsetY: Float = 0f
 )
 
 data class PuzzleUiState(
@@ -52,8 +62,18 @@ private const val SHUFFLE_SEED_MULT = 31
 private const val MIN_HIT_SCALE = 0.2f
 private const val REGION_HIT_PAD_DP = 10f
 private const val SNAP_SPARKLE_RADIUS_RATIO = 0.25f
-private const val SPRITE_PAD_DP = 2f
+private const val SPRITE_STROKE_PAD_DP = 5f
+private const val SPRITE_SHADOW_ELEVATED_DP = 7f
+private const val SPRITE_SHADOW_REST_DP = 3f
+private const val SPRITE_BEVEL_STROKE_DP = 4f
+private const val SPRITE_INK_STROKE_DP = 2.4f
+private const val SPRITE_SHADOW_STROKE_DP = 5f
+private const val COLOR_SPRITE_BEVEL = 0x8CFFFFFF
+private const val COLOR_SPRITE_SHADOW_HIGH = 0x476A496E
+private const val COLOR_SPRITE_SHADOW_LOW = 0x286A496E
 private const val GLOW_ACTIVE_EPSILON = 0.01f
+private const val ROTATION_ACTIVE_EPSILON = 0.002f
+private const val DEFAULT_TRAY_SCALE = 0.5f
 
 class PuzzleViewModel(
     initialLevelId: Int = 2,
@@ -83,6 +103,8 @@ class PuzzleViewModel(
         private set
     var seamAlpha: Float = 1f
         private set
+    var boardRevision: Int = 0
+        private set
     private var secondBurstTriggered = false
 
     private var activeLevelId: Int = initialLevelId
@@ -106,6 +128,7 @@ class PuzzleViewModel(
         cachedArtwork = null
         geometryCache.clear()
         particles.clear()
+        boardRevision++
 
         winTimerSec = 0f
         seamAlpha = 1f
@@ -175,6 +198,7 @@ class PuzzleViewModel(
         }
 
         rebuildGeometryCacheIfNeeded(layout, artwork)
+        boardRevision++
         return layout
     }
 
@@ -193,6 +217,7 @@ class PuzzleViewModel(
 
         val clipRegion = Region(-bw, -bh, bw, bh)
         val boardSize = IntSize(bw.coerceAtLeast(1), bh.coerceAtLeast(1))
+        val trayScale = layout.traySlots.firstOrNull()?.scale ?: DEFAULT_TRAY_SCALE
         for (spec in currentSpecs) {
             val boardPath = buildComposePath(spec, layout.board.w, layout.board.h, 0f, 0f)
             val localPath = buildComposePath(
@@ -204,81 +229,37 @@ class PuzzleViewModel(
             )
             val region = Region()
             region.setPath(localPath.asAndroidPath(), clipRegion)
-            geometryCache[spec.id] = buildCachedGeometry(
+            geometryCache[spec.id] = PieceSpriteBaker.buildCachedGeometry(
                 spec = spec,
                 boardPath = boardPath,
                 localPath = localPath,
                 region = region,
                 layout = layout,
                 boardSize = boardSize,
+                trayScale = trayScale,
                 artwork = artwork
             )
         }
     }
 
-    private fun buildCachedGeometry(
-        spec: JigsawPieceSpec,
-        boardPath: Path,
-        localPath: Path,
-        region: Region,
-        layout: PuzzleLayout,
-        boardSize: IntSize,
-        artwork: ImageBitmap?
-    ): PieceGeometryCache {
-        if (artwork == null) {
-            return PieceGeometryCache(boardPath, localPath, region)
-        }
-        val bounds = localPath.getBounds()
-        val pad = SPRITE_PAD_DP * layout.density
-        val offsetX = floor(bounds.left - pad)
-        val offsetY = floor(bounds.top - pad)
-        val spriteW = ceil(bounds.right + pad - offsetX).toInt().coerceAtLeast(1)
-        val spriteH = ceil(bounds.bottom + pad - offsetY).toInt().coerceAtLeast(1)
-        val sprite = ImageBitmap(spriteW, spriteH)
-        val canvas = Canvas(sprite)
-        CanvasDrawScope().draw(
-            density = Density(layout.density),
-            layoutDirection = LayoutDirection.Ltr,
-            canvas = canvas,
-            size = Size(spriteW.toFloat(), spriteH.toFloat())
-        ) {
-            translate(-offsetX, -offsetY) {
-                clipPath(localPath) {
-                    drawImage(
-                        image = artwork,
-                        dstOffset = IntOffset(
-                            (-spec.centerX * layout.board.w).roundToInt(),
-                            (-spec.centerY * layout.board.h).roundToInt()
-                        ),
-                        dstSize = boardSize
-                    )
-                }
-            }
-        }
-        return PieceGeometryCache(
-            boardPath = boardPath,
-            localPath = localPath,
-            hitRegion = region,
-            spriteBitmap = sprite,
-            spriteOffsetX = offsetX,
-            spriteOffsetY = offsetY
-        )
-    }
+    fun isDragging(): Boolean = physicsEngine?.isActivelyDragging() == true
 
     fun shouldRenderFullRate(): Boolean {
         val engine = physicsEngine
         val uiActive = _uiState.value.completed || particles.hasActiveParticles()
-        val engineActive = engine != null &&
-            (engine.activePieceIndex >= 0 || engine.hintPieceIndex >= 0 || hasAnimatingPiece(engine))
+        val engineActive = engine != null && (engine.hintPieceIndex >= 0 || hasAnimatingPiece(engine))
         return uiActive || engineActive
     }
 
     private fun hasAnimatingPiece(engine: PuzzlePhysicsEngine): Boolean {
         for (piece in engine.runtimes) {
-            val moving = piece.status == PieceStatus.DRAGGING ||
-                piece.status == PieceStatus.RETURNING ||
-                piece.status == PieceStatus.SNAPPING
-            if (moving || piece.glowIntensity > GLOW_ACTIVE_EPSILON) {
+            val scaleSettling = abs(piece.targetScale - piece.scale) > GameConfig.SCALE_SNAP_EPSILON
+            val rotSettling = abs(piece.rotation) > ROTATION_ACTIVE_EPSILON
+            val glowSettling = piece.glowIntensity > GLOW_ACTIVE_EPSILON &&
+                piece.glowIntensity < 1f - GLOW_ACTIVE_EPSILON
+            val nonDragMotion = piece.status == PieceStatus.RETURNING || piece.status == PieceStatus.SNAPPING
+            val visualBusy = nonDragMotion || scaleSettling || rotSettling
+            if (visualBusy || glowSettling) {
                 return true
             }
         }
@@ -347,58 +328,90 @@ class PuzzleViewModel(
         return grabbed
     }
 
-    fun onPointerMove(pointerId: Long, x: Float, y: Float, nowMillis: Long) {
-        val engine = physicsEngine ?: return
-        val layout = currentLayout ?: return
-        engine.moveDrag(pointerId, x, y, layout, nowMillis)
-    }
-
-    fun onPointerUp(pointerId: Long, nowMillis: Long) {
-        val engine = physicsEngine ?: return
-        val layout = currentLayout ?: return
-        if (engine.isTrackingPointer(pointerId)) {
-            val snapped = engine.endDrag(pointerId, layout, nowMillis)
-            if (snapped) {
-                val placed = engine.runtimes.count {
-                    it.status == PieceStatus.PLACED || it.status == PieceStatus.SNAPPING
-                }
-                val active = engine.runtimes.firstOrNull { it.status == PieceStatus.SNAPPING }
-                audio.playSnap(placed, engine.runtimes.size)
-                if (active != null) {
-                    particles.emitSnapSparkles(
-                        active.snapTargetX,
-                        active.snapTargetY,
-                        layout.density,
-                        min(layout.board.w, layout.board.h) * SNAP_SPARKLE_RADIUS_RATIO
-                    )
-                }
-            } else {
-                audio.playReturnBounce()
-            }
+    fun onPointerMove(pointerId: Long, x: Float, y: Float, nowMillis: Long): Boolean {
+        val engine = physicsEngine
+        val layout = currentLayout
+        var moved = false
+        if (engine != null && layout != null && engine.isTrackingPointer(pointerId)) {
+            engine.moveDrag(pointerId, x, y, layout, nowMillis)
+            moved = true
         }
+        return moved
     }
 
-    fun onPointerCancel(pointerId: Long) {
-        val engine = physicsEngine ?: return
-        val layout = currentLayout ?: return
-        if (engine.isTrackingPointer(pointerId)) {
-            engine.cancelActiveDrag(layout)
+    fun onPointerUp(pointerId: Long, nowMillis: Long): Boolean {
+        val engine = physicsEngine
+        val layout = currentLayout
+        var handled = false
+        if (engine != null && layout != null && engine.isTrackingPointer(pointerId)) {
+            handleTrackedPointerUp(engine, layout, pointerId, nowMillis)
+            handled = true
+        }
+        return handled
+    }
+
+    private fun handleTrackedPointerUp(
+        engine: PuzzlePhysicsEngine,
+        layout: PuzzleLayout,
+        pointerId: Long,
+        nowMillis: Long
+    ) {
+        val snapped = engine.endDrag(pointerId, layout, nowMillis)
+        if (snapped) {
+            var placed = 0
+            var active: PieceRuntime? = null
+            for (piece in engine.runtimes) {
+                if (piece.status == PieceStatus.PLACED || piece.status == PieceStatus.SNAPPING) {
+                    placed++
+                }
+                if (piece.status == PieceStatus.SNAPPING && active == null) {
+                    active = piece
+                }
+            }
+            audio.playSnap(placed, engine.runtimes.size)
+            if (active != null) {
+                particles.emitSnapSparkles(
+                    active.snapTargetX,
+                    active.snapTargetY,
+                    layout.density,
+                    min(layout.board.w, layout.board.h) * SNAP_SPARKLE_RADIUS_RATIO
+                )
+            }
+        } else {
             audio.playReturnBounce()
         }
+    }
+
+    fun onPointerCancel(pointerId: Long): Boolean {
+        val engine = physicsEngine
+        val layout = currentLayout
+        var handled = false
+        if (engine != null && layout != null && engine.isTrackingPointer(pointerId)) {
+            engine.cancelActiveDrag(layout)
+            audio.playReturnBounce()
+            handled = true
+        }
+        return handled
     }
 
     fun onFrame(dtSec: Float) {
         val clampedDt = dtSec.coerceIn(GameConfig.MIN_FRAME_DELTA_SEC, GameConfig.MAX_FRAME_DELTA_SEC)
         elapsedTimeSec += clampedDt
-        particles.update(clampedDt)
+        if (!isDragging() && particles.hasActiveParticles()) {
+            particles.update(clampedDt)
+        }
 
         val engine = physicsEngine ?: return
         val layout = currentLayout ?: return
+        val prevHint = engine.hintPieceIndex
         val res = engine.step(clampedDt, layout)
 
         val cur = _uiState.value
         if (res.placedCount != cur.placedCount) {
             _uiState.value = cur.copy(placedCount = res.placedCount)
+            boardRevision++
+        } else if (res.justSnappedPieceId >= 0 || engine.hintPieceIndex != prevHint) {
+            boardRevision++
         }
 
         if (!cur.completed && res.allCompleted) {
@@ -407,6 +420,7 @@ class PuzzleViewModel(
             audio.playWinFanfare()
             particles.emitCelebrationFireworks(layout.width, layout.height, layout.density)
             onLevelCompleted(cur.level.id, GameConfig.MAX_STARS)
+            boardRevision++
             _uiState.value = _uiState.value.copy(
                 placedCount = engine.runtimes.size,
                 completed = true,
@@ -430,8 +444,107 @@ class PuzzleViewModel(
     }
 
     override fun onCleared() {
+        geometryCache.clear()
+        cachedArtwork = null
+        particles.clear()
         audio.release()
         super.onCleared()
+    }
+}
+
+private object PieceSpriteBaker {
+    fun buildCachedGeometry(
+        spec: JigsawPieceSpec,
+        boardPath: Path,
+        localPath: Path,
+        region: Region,
+        layout: PuzzleLayout,
+        boardSize: IntSize,
+        trayScale: Float,
+        artwork: ImageBitmap?
+    ): PieceGeometryCache {
+        if (artwork == null) {
+            return PieceGeometryCache(boardPath, localPath, region)
+        }
+        val (dragBmp, dragOffX, dragOffY) = renderBakedPieceSprite(
+            spec = spec,
+            localPath = localPath,
+            layout = layout,
+            boardSize = boardSize,
+            artwork = artwork,
+            spriteScale = 1f,
+            shadowColor = COLOR_SPRITE_SHADOW_HIGH,
+            shadowYDp = SPRITE_SHADOW_ELEVATED_DP
+        )
+        val (trayBmp, trayOffX, trayOffY) = renderBakedPieceSprite(
+            spec = spec,
+            localPath = localPath,
+            layout = layout,
+            boardSize = boardSize,
+            artwork = artwork,
+            spriteScale = trayScale,
+            shadowColor = COLOR_SPRITE_SHADOW_LOW,
+            shadowYDp = SPRITE_SHADOW_REST_DP
+        )
+        return PieceGeometryCache(
+            boardPath = boardPath,
+            localPath = localPath,
+            hitRegion = region,
+            spriteBitmap = dragBmp,
+            spriteOffsetX = dragOffX,
+            spriteOffsetY = dragOffY,
+            traySpriteBitmap = trayBmp,
+            traySpriteOffsetX = trayOffX,
+            traySpriteOffsetY = trayOffY
+        )
+    }
+
+    private fun renderBakedPieceSprite(
+        spec: JigsawPieceSpec,
+        localPath: Path,
+        layout: PuzzleLayout,
+        boardSize: IntSize,
+        artwork: ImageBitmap,
+        spriteScale: Float,
+        shadowColor: Int,
+        shadowYDp: Float
+    ): Triple<ImageBitmap, Float, Float> {
+        val bounds = localPath.getBounds()
+        val sidePad = SPRITE_STROKE_PAD_DP * layout.density
+        val botPad = (SPRITE_STROKE_PAD_DP + shadowYDp) * layout.density
+        val offsetX = floor((bounds.left - sidePad) * spriteScale)
+        val offsetY = floor((bounds.top - sidePad) * spriteScale)
+        val spriteW = ceil((bounds.right + sidePad) * spriteScale - offsetX).toInt().coerceAtLeast(1)
+        val spriteH = ceil((bounds.bottom + botPad) * spriteScale - offsetY).toInt().coerceAtLeast(1)
+        val sprite = ImageBitmap(spriteW, spriteH)
+        val canvas = Canvas(sprite)
+        val shadowStroke = Stroke(width = SPRITE_SHADOW_STROKE_DP * layout.density, join = StrokeJoin.Round)
+        val bevelStroke = Stroke(width = SPRITE_BEVEL_STROKE_DP * layout.density, join = StrokeJoin.Round)
+        val inkStroke = Stroke(width = SPRITE_INK_STROKE_DP * layout.density, join = StrokeJoin.Round)
+        val artDstOffset = IntOffset(
+            (-spec.centerX * layout.board.w).roundToInt(),
+            (-spec.centerY * layout.board.h).roundToInt()
+        )
+        CanvasDrawScope().draw(
+            density = Density(layout.density),
+            layoutDirection = LayoutDirection.Ltr,
+            canvas = canvas,
+            size = Size(spriteW.toFloat(), spriteH.toFloat())
+        ) {
+            translate(-offsetX, -offsetY) {
+                scale(spriteScale, spriteScale, pivot = Offset.Zero) {
+                    translate(0f, shadowYDp * layout.density) {
+                        drawPath(localPath, color = Color(shadowColor), style = shadowStroke)
+                    }
+                    clipPath(localPath) {
+                        drawImage(image = artwork, dstOffset = artDstOffset, dstSize = boardSize)
+                    }
+                    drawPath(localPath, color = Color(COLOR_SPRITE_BEVEL), style = bevelStroke)
+                    drawPath(localPath, color = StorybookPalette.Ink, style = inkStroke)
+                }
+            }
+        }
+        return Triple(sprite, offsetX, offsetY)
     }
 }
 

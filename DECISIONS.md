@@ -38,6 +38,16 @@
    - **Decision**: Implemented `Home` -> `LevelSelect` -> `PuzzlePlay/{levelId}` navigation in `AppNavHost.kt` with a process-wide singleton `ProgressRepositoryProvider` wrapping Jetpack DataStore (`schema_version = 1`, `ProgressSchemaMigration`), `PuzzleViewModelFactory` scoped per navigation back-stack entry for rotation safety, and fixed `Next` / `Levels` completion actions (read-only piece badge in puzzle HUD).
    - **Rationale**: Prevents duplicate DataStore file conflicts across configuration changes, ensures earned stars and unlocks survive cold restarts cleanly, and prevents toddlers from exiting the app via system Back during active play.
 
+10. **Drag-and-Drop 60 FPS Performance Measurement & 3-Layer Render Pipeline (`releaseTestable`)**
+    - **Benchmark Setup**: Physical device `CPH2471` (`720x1612`, Android 12) running R8-minified, debug-signed, `<profileable android:shell="true"/>` build (`com.princesspuzzle.storybook.profile`, `releaseTestable`), continuously dragging pieces on 12-piece Level 16 for 30.5–30.6 seconds (`dumpsys gfxinfo ... framestats`).
+    - **Root Cause**: Per-frame `RenderThread+GPU` time averaged `15.70ms` (`p95 = 16.33ms`) from tessellating ~49 cubic-Bezier `drawPath` / `clipPath` strokes every frame (board `RoundRect` clip, scaled `800x800` ghost, 12 dashed slots, and 12 unplaced pieces each stroking shadow + bevel + ink). In addition, `startDrag` delayed initial lift until the next `withFrameNanos` tick instead of updating immediately on touch-down/move.
+    - **Measured Results (Before -> After)**:
+      - `Janky frames (legacy)`: **`288 / 1741 (16.54%)` -> `0 / 1839 (0.00%)`** (`Janky frames`: `0.23% -> 0.00%`)
+      - `50th / 90th / 95th / 99th percentile`: **`19 / 20 / 20 / 21 ms` -> `8 / 9 / 10 / 15 ms`**
+      - `Frames > 32 ms`: **`0 -> 0`** (`1284` frames `>= 17 ms` reduced to `2` frames)
+      - `GPU 50th / 95th percentile`: **`7 / 7 ms` -> `4 / 5 ms`**; `PROFILEDATA` (`n=120`) `UI avg`: `1.92ms -> 1.01ms`, `RT+GPU p50`: `15.96ms -> 6.24ms`.
+    - **Decision**: Separated rendering into (1) a cached full-screen `staticBoardBitmap` layer (backdrop, frame, ghost, dashed slots, tray, placed pieces — redrawn only on resize/snap), (2) native pre-baked `spriteBitmap` (`1.0x`) and `traySpriteBitmap` (`trayScale`) quads blitted 1:1 with zero per-frame path clipping during drag, and (3) synchronous pointer position updates + immediate canvas redraw invalidation on `Press`/`Move`/`Release`, pausing idle animations and confetti updates while actively dragging.
+
 ---
 
 ## Archive: Earlier Web Prototype Decisions (2026-11-17)
