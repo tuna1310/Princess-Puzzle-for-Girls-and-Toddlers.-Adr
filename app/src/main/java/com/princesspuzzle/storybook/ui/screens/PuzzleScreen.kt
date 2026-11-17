@@ -68,6 +68,7 @@ import com.princesspuzzle.storybook.core.GameConfig
 import com.princesspuzzle.storybook.core.PuzzleLayout
 import com.princesspuzzle.storybook.puzzle.PieceRuntime
 import com.princesspuzzle.storybook.puzzle.PieceStatus
+import com.princesspuzzle.storybook.puzzle.PuzzleLevels
 import com.princesspuzzle.storybook.puzzle.PuzzlePhysicsEngine
 import com.princesspuzzle.storybook.puzzle.PuzzleUiState
 import com.princesspuzzle.storybook.puzzle.PuzzleViewModel
@@ -224,15 +225,15 @@ fun PuzzleScreen(
     val uiState by viewModel.uiState.collectAsState()
     val density = LocalDensity.current.density
     val scratch = remember(uiState.level.id, density) { RenderScratchCache(density) }
-    var drawVersion by remember { mutableLongStateOf(0L) }
+    var drawVersion by remember(viewModel, uiState.level.id) { mutableLongStateOf(0L) }
 
-    DisposableEffect(uiState.level.id) {
+    DisposableEffect(viewModel, uiState.level.id) {
         onDispose { scratch.clearBoardLayer() }
     }
 
     BackHandler { onNavigateBackToLevels() }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel, uiState.level.id) {
         var lastNanos = 0L
         var lastIdleRedrawNanos = 0L
         while (isActive) {
@@ -312,6 +313,7 @@ fun PuzzleScreen(
                 layout = layout,
                 uiState = uiState,
                 winTimerSec = viewModel.winTimerSec,
+                hasNextLevel = PuzzleLevels.nextAfter(uiState.level.id) != null,
                 onLevels = onNavigateBackToLevels,
                 onNextPuzzle = onNextLevel
             )
@@ -439,6 +441,7 @@ private fun PuzzleCelebrationPanel(
     layout: PuzzleLayout,
     uiState: PuzzleUiState,
     winTimerSec: Float,
+    hasNextLevel: Boolean,
     onLevels: () -> Unit,
     onNextPuzzle: () -> Unit
 ) {
@@ -488,24 +491,28 @@ private fun PuzzleCelebrationPanel(
                     bottomColor = StorybookPalette.ButtonBlueBottom,
                     onClick = onLevels
                 )
-                StorybookPillButton(
-                    label = stringResource(R.string.win_next),
-                    topColor = StorybookPalette.ButtonPinkTop,
-                    bottomColor = StorybookPalette.ButtonPinkBottom,
-                    onClick = onNextPuzzle
-                )
+                if (hasNextLevel) {
+                    StorybookPillButton(
+                        label = stringResource(R.string.win_next),
+                        topColor = StorybookPalette.ButtonPinkTop,
+                        bottomColor = StorybookPalette.ButtonPinkBottom,
+                        onClick = onNextPuzzle
+                    )
+                }
             }
         } else {
             Column(
                 verticalArrangement = Arrangement.spacedBy(CELEBRATION_BTN_COL_GAP_DP.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                StorybookPillButton(
-                    label = stringResource(R.string.win_next),
-                    topColor = StorybookPalette.ButtonPinkTop,
-                    bottomColor = StorybookPalette.ButtonPinkBottom,
-                    onClick = onNextPuzzle
-                )
+                if (hasNextLevel) {
+                    StorybookPillButton(
+                        label = stringResource(R.string.win_next),
+                        topColor = StorybookPalette.ButtonPinkTop,
+                        bottomColor = StorybookPalette.ButtonPinkBottom,
+                        onClick = onNextPuzzle
+                    )
+                }
                 StorybookPillButton(
                     label = stringResource(R.string.win_levels),
                     topColor = StorybookPalette.ButtonBlueTop,

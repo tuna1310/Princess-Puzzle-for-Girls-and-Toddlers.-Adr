@@ -78,7 +78,8 @@ private const val DEFAULT_TRAY_SCALE = 0.5f
 class PuzzleViewModel(
     initialLevelId: Int = 2,
     private val audio: AudioEngine = NoOpAudioEngine,
-    private val onLevelCompleted: (Int, Int) -> Unit = { _, _ -> }
+    private val onLevelCompleted: (Int, Int) -> Unit = { _, _ -> },
+    private val enableRenderCache: Boolean = true
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PuzzleUiState())
@@ -130,6 +131,7 @@ class PuzzleViewModel(
         particles.clear()
         boardRevision++
 
+        elapsedTimeSec = 0f
         winTimerSec = 0f
         seamAlpha = 1f
         secondBurstTriggered = false
@@ -203,6 +205,7 @@ class PuzzleViewModel(
     }
 
     private fun rebuildGeometryCacheIfNeeded(layout: PuzzleLayout, artwork: ImageBitmap?) {
+        if (!enableRenderCache) return
         val bw = layout.board.w.roundToInt()
         val bh = layout.board.h.roundToInt()
         val sizeMatches = bw == cachedBoardW && bh == cachedBoardH

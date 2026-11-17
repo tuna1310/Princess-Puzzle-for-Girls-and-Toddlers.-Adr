@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.princesspuzzle.storybook.BuildConfig
+import com.princesspuzzle.storybook.data.AppProgressState
 import com.princesspuzzle.storybook.data.ProgressRepositoryProvider
 import com.princesspuzzle.storybook.puzzle.PuzzleLevels
 import com.princesspuzzle.storybook.puzzle.PuzzleViewModel
@@ -20,7 +21,33 @@ import com.princesspuzzle.storybook.puzzle.PuzzleViewModelFactory
 import com.princesspuzzle.storybook.ui.screens.HomeScreen
 import com.princesspuzzle.storybook.ui.screens.LevelSelectScreen
 import com.princesspuzzle.storybook.ui.screens.PuzzleScreen
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+
+internal sealed interface NextLevelDestination {
+    data class OpenPuzzle(val levelId: Int) : NextLevelDestination
+    data class BlockedLocked(val levelId: Int) : NextLevelDestination
+    data object ReturnToLevelSelect : NextLevelDestination
+}
+
+internal fun resolveNextLevelDestination(
+    currentLevelId: Int,
+    progressState: AppProgressState,
+    debugUnlockAll: Boolean
+): NextLevelDestination {
+    val next = PuzzleLevels.nextAfter(currentLevelId) ?: return NextLevelDestination.ReturnToLevelSelect
+    val unlocked = PuzzleLevels.isUnlocked(
+        level = next,
+        unlockedAll = progressState.unlockedAll,
+        extraUnlockedIds = progressState.unlockedLevelIds,
+        debugUnlockAll = debugUnlockAll
+    )
+    return if (unlocked) {
+        NextLevelDestination.OpenPuzzle(next.id)
+    } else {
+        NextLevelDestination.BlockedLocked(next.id)
+    }
+}
 
 private object Routes {
     const val HOME = "home"
@@ -41,6 +68,14 @@ fun PrincessPuzzleNavHost(initialBenchmarkLevelId: Int? = null) {
     val debugUnlockAll = BuildConfig.DEBUG && BuildConfig.UNLOCK_ALL_FOR_DEBUG
     val startRoute = remember(initialBenchmarkLevelId) {
         if (initialBenchmarkLevelId != null) Routes.puzzlePlay(initialBenchmarkLevelId) else Routes.HOME
+    }
+    val navigateBackToLevels: () -> Unit = {
+        if (!navController.popBackStack(Routes.LEVEL_SELECT, inclusive = false)) {
+            navController.navigate(Routes.LEVEL_SELECT) {
+                popUpTo(Routes.HOME) { inclusive = false }
+                launchSingleTop = true
+            }
+        }
     }
 
     NavHost(
@@ -63,7 +98,7 @@ fun PrincessPuzzleNavHost(initialBenchmarkLevelId: Int? = null) {
                 progressState = progressState,
                 onBackHome = { navController.popBackStack() },
                 onSelectLevel = { levelId ->
-                    scope.launch { progressRepository.setLastSelectedLevelId(levelId) }
+                    scope.launch(NonCancellable) { progressRepository.setLastSelectedLevelId(levelId) }
                     navController.navigate(Routes.puzzlePlay(levelId)) {
                         launchSingleTop = true
                     }
@@ -79,31 +114,33 @@ fun PrincessPuzzleNavHost(initialBenchmarkLevelId: Int? = null) {
             val levelId = backStackEntry.arguments?.getInt(Routes.ARG_LEVEL_ID) ?: 1
             val puzzleViewModel: PuzzleViewModel = viewModel(
                 viewModelStoreOwner = backStackEntry,
+                key = "puzzle_play_$levelId",
                 factory = PuzzleViewModelFactory(levelId = levelId) { completedId, stars ->
-                    scope.launch { progressRepository.recordLevelCompletion(completedId, stars) }
+                    scope.launch(NonCancellable) { progressRepository.recordLevelCompletion(completedId, stars) }
                 }
             )
 
             PuzzleScreen(
                 viewModel = puzzleViewModel,
-                onNavigateBackToLevels = { navController.popBackStack() },
+                onNavigateBackToLevels = navigateBackToLevels,
                 onNextLevel = {
-                    val next = PuzzleLevels.nextAfter(levelId)
-                    val curProgress = progressRepository.progressFlow.value
-                    val canOpenNext = next != null && PuzzleLevels.isUnlocked(
-                        level = next,
-                        unlockedAll = curProgress.unlockedAll,
-                        extraUnlockedIds = curProgress.unlockedLevelIds,
+                    val destination = resolveNextLevelDestination(
+                        currentLevelId = levelId,
+                        progressState = progressRepository.progressFlow.value,
                         debugUnlockAll = debugUnlockAll
                     )
-                    if (canOpenNext) {
-                        scope.launch { progressRepository.setLastSelectedLevelId(next.id) }
-                        navController.navigate(Routes.puzzlePlay(next.id)) {
-                            popUpTo(Routes.LEVEL_SELECT) { inclusive = false }
-                            launchSingleTop = true
+                    when (destination) {
+                        is NextLevelDestination.OpenPuzzle -> {
+                            scope.launch(NonCancellable) {
+                                progressRepository.setLastSelectedLevelId(destination.levelId)
+                            }
+                            navController.navigate(Routes.puzzlePlay(destination.levelId)) {
+                                popUpTo(Routes.LEVEL_SELECT) { inclusive = false }
+                                launchSingleTop = true
+                            }
                         }
-                    } else {
-                        navController.popBackStack()
+                        is NextLevelDestination.BlockedLocked,
+                        NextLevelDestination.ReturnToLevelSelect -> navigateBackToLevels()
                     }
                 }
             )

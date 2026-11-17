@@ -49,7 +49,7 @@ class ConfettiParticleSystem(
 ) {
     private val pool = Array(capacity) { ConfettiParticle() }
     private var nextCursor = 0
-    private val scratchPath = Path()
+    private val scratchPath: Path by lazy { Path() }
     private val rng = Random(42)
 
     fun hasActiveParticles(): Boolean {
