@@ -1,32 +1,36 @@
 # Architectural & Product Decisions (`DECISIONS.md`)
 
-## 2026-11-17 — Initial Roadmap & Baseline Assumptions
+## 2026-11-17 — Technical Pivot: Native Android (Kotlin + Jetpack Compose)
+1. **Pivot from Web PWA to Native Android App**
+   - **Decision**: Relocated the Vite + TypeScript + HTML5 Canvas prototype into `web-prototype/` via `git mv` and initialized a pure Kotlin + Jetpack Compose Android project at the repository root.
+   - **Rationale**: The product target is a native Android toddler app without browser chrome, network dependencies, or WebView overhead, offering direct `AudioTrack` synthesis, `SplashScreen` API, immersive sticky system bars, `DataStore` persistence, adaptive launcher icons, and Play Store `.aab` (`bundleRelease`) readiness.
+   - **Preservation**: Keeping `web-prototype/` with full git history preserves exact mathematical reference formulas (Bezier jigsaw seams, layout math, spring physics constants, and original character designs) during porting.
 
-Because no pre-existing `SPEC.md` or `/reference` directory existed in the initialized workspace, the Lead Developer derived the concrete roadmap and resolved open product details from the user brief and attached visual references:
+2. **Target & Compile SDK Selection (`minSdk 24`, `compileSdk 37`, `targetSdk 37`)**
+   - **Decision**: Configured `minSdk = 24`, `compileSdk = 37`, and `targetSdk = 37` (against locally installed `platforms/android-37.0`, API level 37.0 / Android 17 preview platform metadata) paired with `build-tools/36.0.0`, Gradle `8.13`, AGP `8.13.2`, Kotlin `2.0.21`, and Java 17 toolchain.
+   - **Rationale**: Using the newest installed Android SDK (`android-37.0`) satisfies strict `OldTargetApi` Android Lint checks cleanly with zero lint errors (AGP `8.13.2` logs an informational tested-up-to-36.1 warning, which builds cleanly without suppressing lint). `minSdk = 24` covers >98% of active Android tablets and phones with full `Canvas` and `DataStore` support.
 
-1. **Four-Step Roadmap Alignment**
-   - **Decision**: Organized implementation into Steps 1–4 (`SPEC.md` Section 4) and delivered Steps 1 and 2 together as the first playable vertical slice.
-   - **Rationale**: Ensures the project compiles, installs as a PWA over LAN (`host: true`), runs automated tests, and offers playable puzzles immediately before investing in all 16 illustrations (Step 3) and the full Parental Gate/Settings suite (Step 4).
+3. **Quality Toolchain: Android Lint + ktlint + detekt**
+   - **Decision**: Enforced official Kotlin style via `org.jlleitschuh.gradle.ktlint`, static complexity/code-smell analysis via `detekt`, and strict Android Lint checks (`abortOnError = true`).
+   - **Rationale**: Catches Compose/Android anti-patterns, formatting drift, and magic-number creep automatically before every commit.
 
-2. **Free vs. Locked Level Split (4 Free / 12 Locked)**
-   - **Decision**: Levels 1–4 (2, 3, 4, 4 pieces) are unlocked by default; Levels 5–16 (5 to 12 pieces) start locked and are governed by `PurchaseService.isUnlockedAll()` (`unlockedAll` in `localStorage`).
-   - **Rationale**: Satisfies "first few levels free, remaining locked" while giving toddlers immediate variety across 2-, 3-, and 4-piece puzzles in Step 2.
+4. **Hot-Loop Zero-Allocation Architecture & Cached Artwork Bitmap**
+   - **Decision**: Pre-render each puzzle's procedural illustration once to an offscreen `ImageBitmap` (`800x800`), pre-compile jigsaw `Path` contours per board resize, and mutate pre-allocated `PieceRuntime` and `ConfettiParticle` objects in place inside `withFrameNanos`.
+   - **Rationale**: Prevents GC pauses during rapid finger dragging on mid-range Android tablets and phones, keeping frame times well under the 16.6 ms (60 FPS) budget.
 
-3. **Watertight Multi-Row Jigsaw Slicing (2 to 12 Pieces)**
-   - **Decision**: Slice each full storybook scene using a flexible row-count jigsaw generator (`[2]`, `[3]`, `[2,2]`, `[2,3]`, `[3,3]`, `[4,2]`, `[3,4,3]`, `[4,3]`) with shared sub-interval Bezier tab/blank seams rather than arbitrary non-interlocking cuts.
-   - **Rationale**: Guarantees seamless zero-gap piece locking, intuitive silhouette + color cues on the dimmed ghost frame, and consistent scaling from 2 pieces (age 1–2) up to 12 pieces (age 5–6).
+5. **Centralized Calibration (`GameConfig`)**
+   - **Decision**: Consolidated all touch target sizes (`>= 64dp`, primary `80dp`), snap tolerance, spring stiffness/damping, touch-lift offset, anti-stuck timeout, hint delay, and parental gate durations in `core/GameConfig.kt`.
+   - **Rationale**: Eliminates scattered magic numbers and simplifies tuning on real touchscreens.
 
-4. **Tray Ergonomics & Touch Offset**
-   - **Decision**: Unplaced pieces rest in a neatly spaced, non-overlapping tray at reduced scale and smoothly scale up to `1.0x` board size when grabbed; touch drags apply an upward finger-clearance offset so toddlers' thumbs do not hide the piece.
-   - **Rationale**: Eliminates overlapping-piece frustration on small phone screens while preserving 1:1 desktop mouse accuracy.
+6. **Step 1 & 2 Verification Launch Experience**
+   - **Decision**: Until Step 4 introduces the full 16-level Carousel Hub, the app boots directly into the playable **3-Piece Storybook Puzzle** (*Clover Bunny Princess*) with a large `>= 64dp` piece-count cycle pill (`3 pcs` -> `2`, `4`, `6`, `9`, `12` pcs) in the top bar.
+   - **Rationale**: Allows immediate hands-on testing of Step 1's 3-piece demo AND Step 2's full 2–12 piece slicer, bounce/return physics, anti-stuck recovery, inactivity hints, and portrait/landscape rotation right on a physical device.
 
-5. **Always-Positive Star Reward (3 Stars on Completion)**
-   - **Decision**: Completing any puzzle awards 3 celebratory stars unconditionally.
-   - **Rationale**: Enforces the zero-punishment toddler design philosophy (no accuracy or time penalties for ages 1–6).
+7. **Render Caching & Low-RAM Build Tuning**
+   - **Decision**: Cached static sky/hills/stream terrain into a viewport `ImageBitmap` in `MeadowBackdropState`, pre-baked clipped jigsaw piece sprites into `PieceGeometryCache`, and paced Compose `withFrameNanos` redraws at 15 Hz when idle while snapping immediately to 60 Hz during drag, bounce, snap glow, hint shimmer, or celebration. Tuned `gradle.properties` (`-Xmx1536m`, `kotlin.daemon.jvmargs=-Xmx768m`, `idletimeout=120000`, `workers.max=1`) for single-daemon low-RAM builds.
+   - **Rationale**: Eliminates per-frame `Brush`/shader/path-clipping overhead on mid-range devices and software renderers while keeping build memory bounded on 8 GB workstations.
 
-6. **Offline-Safe Typography & Procedural Art/Audio**
-   - **Decision**: Use local rounded system font stacks (`ui-rounded`, `"Nunito"`, `"Arial Rounded MT Bold"`, etc.) and 100% procedural Canvas 2D/SVG art + WebAudio synthesis, with zero external CDN fonts or tracking calls.
-   - **Rationale**: Guarantees instant offline PWA startup and strict privacy compliance.
+---
 
-7. **Step 2 Locked-Level Feedback**
-   - **Decision**: Tapping a locked level (5–16) or the Grown-ups button during Step 2 displays a friendly, non-punitive storybook notice pointing to the upcoming Grown-ups Parental Gate (Step 4) while keeping the `PurchaseService` interface wired end-to-end.
+## Archive: Earlier Web Prototype Decisions (2026-11-17)
+- Original web decisions (4-free / 12-locked split, watertight multi-row jigsaw slicer `[2]..[4,4,4]`, zero-punishment 3-star completion, original pastel storybook characters) carry forward directly into the Android port; see `web-prototype/` git history for details.

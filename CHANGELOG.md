@@ -1,20 +1,21 @@
 # Changelog
 
-All notable milestone changes to **Princess Storybook Puzzle** are documented here.
+All notable changes to **Princess Storybook Puzzle** are documented here.
 
-## Step 2 — Core Jigsaw Physics, Storybook Art & Playable Vertical Slice
+## Android Step 2 — Jigsaw Slicer Port, Drop/Bounce Physics, Anti-Stuck, Hints & Rotation
+- Ported watertight multi-row Bezier jigsaw slicer (`JigsawSlicer.kt`) supporting 2 to 12 pieces with pure-Kotlin curve geometry and Compose `Path` builders.
+- Implemented zero-allocation `withFrameNanos` drag, snap, and spring-bounce return physics (`PuzzlePhysicsEngine.kt`) with upward touch-lift offset, multi-touch pointer isolation, viewport clamping, and anti-stuck timeout recovery.
+- Added subtle inactivity shimmer hint highlighting an unplaced tray piece and its target ghost slot after idle delay (`GameConfig.HINT_INACTIVITY_DELAY_SEC`).
+- Implemented portrait/landscape responsive `PuzzleLayout` (`PuzzleLayout.kt`) and `PuzzleViewModel` (`StateFlow`) preserving piece positions and progress seamlessly on screen rotation.
+- Ported animated storybook meadow backdrop, 4 starter pastel illustrations (*Starlight Tiara*, *Clover Bunny Princess*, *Cloudberry Unicorn*, *Cupcake Blossom Castle*), and pre-allocated confetti celebration particles.
+- Added JUnit tests covering slicer area watertightness (2–12 pieces), portrait/landscape tray non-overlap, snap/return/anti-stuck physics, hint trigger, rotation sync, and level metadata.
+- Optimized Compose canvas rendering: cached static meadow terrain (`MeadowBackdropState`), pre-baked per-piece sprite bitmaps (`PieceGeometryCache`), paced idle redraws (15 Hz idle / 60 Hz active), fixed compact HUD piece badge layout (`%1$d pc`/`%1$d pcs`), and configured low-RAM Gradle daemon settings (`gradle.properties`).
 
-- Implemented watertight multi-row Bezier jigsaw slicer (`src/game/jigsawSlicer.ts`) supporting 2 to 12 interlocking pieces.
-- Built 2D toddler-ergonomic drag-and-drop physics (`src/game/physics.ts`) with touch-lift offset, magnetic slot glow, spring snap, and gentle non-punitive return physics.
-- Created procedural pastel storybook backdrop and original illustrations (`src/art/`) for the 4 free starter levels (_Starlight Tiara_, _Clover Bunny Princess_, _Cloudberry Unicorn_, _Cupcake Blossom Castle_).
-- Built WebAudio sound synthesizer (`src/audio/soundEngine.ts`) for pickup plucks, soft return bounces, pentatonic snap chimes, and celebration fanfare.
-- Built rotating 16-level Storybook Carousel Hub (`src/game/hubScreen.ts`), Gameplay Screen (`src/game/puzzleScreen.ts`), and celebration confetti/star particle rewards (`src/game/particles.ts`).
-- Verified TypeScript, 17 Vitest unit tests, production PWA build, and Playwright Chrome E2E across portrait and landscape viewports.
+## Android Step 1 — Prototype Relocation, Android Scaffold & 3-Piece Interactive Demo
+- Moved web prototype into `web-prototype/` via `git mv` preserving complete git history.
+- Initialized native Android project (Kotlin 2.0, Jetpack Compose, Gradle KTS, `gradle/libs.versions.toml`, Gradle 8.13 wrapper) with `minSdk 24`, `compileSdk 37`, `targetSdk 37`.
+- Configured Android Lint, `ktlint`, and `detekt`, plus centralized `GameConfig` constants, `PurchaseService` contract, adaptive vector icon, `SplashScreen`, edge-to-edge immersive mode, `FLAG_KEEP_SCREEN_ON`, R8 release configuration, and English-only `strings.xml`.
+- Delivered playable 3-piece storybook puzzle demo with drag-and-drop snapping and celebration completion.
 
-## Step 1 — Foundation, PWA & Responsive Canvas Engine
-
-- Initialized Vite + TypeScript strict project with `host: true` LAN access and `vite-plugin-pwa` offline manifest/service worker (`vite.config.ts`).
-- Created English-only `src/i18n/en.json` dictionary and `t()` helper (`src/i18n/index.ts`).
-- Implemented `PurchaseService` interface (`LocalSimulatedPurchaseService` backed by `unlockedAll` in `localStorage`) and `ProgressStore` (`src/storage/`).
-- Built responsive portrait/landscape layout solver (`src/core/layout.ts`) and HiDPI Canvas 2D runtime (`src/core/app.ts`).
-- Documented specification and initial design decisions (`SPEC.md`, `DECISIONS.md`, `IDEAS.md`, `README.md`).
+## Web Prototype Archive (Steps 1–2)
+- Prior Vite + TypeScript + HTML5 Canvas 2D PWA vertical slice archived in `web-prototype/`.
