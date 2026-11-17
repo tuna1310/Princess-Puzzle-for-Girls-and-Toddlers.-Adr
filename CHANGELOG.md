@@ -2,6 +2,12 @@
 
 All notable changes to **Princess Storybook Puzzle** are documented here.
 
+## Android Step 5 (Early) & Level Unlock / Transition Fixes
+- Added debug-only unlock override (`BuildConfig.DEBUG && BuildConfig.UNLOCK_ALL_FOR_DEBUG`, strictly `false` in `release` and `releaseTestable`) with an in-grid Debug Lock Preview toggle so testers can both play all 16 levels immediately and preview release lock behavior.
+- Hardened `Next` transitions (`1 -> 2 -> 3 -> 4`), explicit `PuzzleViewModel` keying, `NonCancellable` DataStore star saves, complete runtime/particle/cache resets, `hasNextLevel` celebration button guard on Level 16, and safe `LevelSelect` fallback navigation (`PuzzleTransitionTest.kt`).
+- Guarded locked level clicks, `Next` into locked Level 5, and direct locked routes in `AppNavHost` so they show a friendly English `Magic Pack Puzzle` notice from `strings.xml` with a `Grown-Ups` shortcut and never crash or stall.
+- Implemented `ParentalGateOverlay` (3-second hold OR single-digit multiplication check) and `GrownUpsSettingsOverlay` (`Unlock All 16 Puzzles`, simulated `Restore Purchase`, `Sound`/`Music` DataStore toggles, `Re-Lock Magic Pack`, two-tap `Reset Stars & Progress`, and `Exit App`) backed by `DataStorePurchaseService` (`ParentalGateAndSettingsTest.kt`).
+
 ## Fixes — Drag-and-Drop 60 FPS Performance Optimization
 - Added `releaseTestable` profileable R8 build type (`ALLOW_BENCHMARK_INTENT`, debug-signed `.profile` ID) for real-device `dumpsys gfxinfo framestats` measurement on `CPH2471` (Android 12, 12-piece Level 16).
 - Eliminated per-frame path tessellation and touch latency: cached Layer 1 static board (`staticBoardBitmap` rebuilt only on resize/snap), baked dual-resolution native piece quads (`spriteBitmap` + `traySpriteBitmap`), paused idle background/confetti updates during active drags, bounded `SceneIllustrations` LRU (`ARTWORK_LRU_CAPACITY = 2`), and updated piece coordinates synchronously inside pointer events.

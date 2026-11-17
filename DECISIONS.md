@@ -48,6 +48,13 @@
       - `GPU 50th / 95th percentile`: **`7 / 7 ms` -> `4 / 5 ms`**; `PROFILEDATA` (`n=120`) `UI avg`: `1.92ms -> 1.01ms`, `RT+GPU p50`: `15.96ms -> 6.24ms`.
     - **Decision**: Separated rendering into (1) a cached full-screen `staticBoardBitmap` layer (backdrop, frame, ghost, dashed slots, tray, placed pieces — redrawn only on resize/snap), (2) native pre-baked `spriteBitmap` (`1.0x`) and `traySpriteBitmap` (`trayScale`) quads blitted 1:1 with zero per-frame path clipping during drag, and (3) synchronous pointer position updates + immediate canvas redraw invalidation on `Press`/`Move`/`Release`, pausing idle animations and confetti updates while actively dragging.
 
+11. **Level 5–16 Access After Level 4, Debug Unlock Flag & Early Step 5 (Parental Gate + Simulated IAP)**
+    - **Root Cause Analysis**: Being unable to advance beyond Level 4 was caused by **intentional freemium pack design** paired with an unimplemented Step 5 unlock UI rather than a `1 -> 2 -> 3 -> 4` transition bug: `PuzzleLevels` marks Levels 1–4 `free = true` and Levels 5–16 `free = false`, while `HomeScreen`'s Grown-Ups button and locked-level dialogs pointed to placeholder Step 5 notices and `AppNavHost.onNextLevel` popped silently back to Level Select when hitting locked Level 5.
+    - **Decision**:
+      - Added `BuildConfig.UNLOCK_ALL_FOR_DEBUG` (`true` ONLY on `debug`, `false` on `release` and `releaseTestable`) gated by `BuildConfig.DEBUG` with a debug-only Lock Preview toggle banner in `LevelSelectScreen` so debug builds unlock all 16 levels immediately without the Parental Gate while `release`/`releaseTestable` strictly enforce the starter/paid lock split.
+      - Hardened `AppNavHost` with explicit `viewModel(key = ...)`, `NonCancellable` progress saves, safe `navigateBackToLevels()` fallback, `hasNextLevel` guard on Level 16, route-level `isRouteLevelAccessible` guard returning locked triggers cleanly to `LevelSelect` with a gentle English notice (no crashes or silent failures).
+      - Implemented Step 5 early: dual-mode `ParentalGateOverlay` (continuous 3-second hold OR multiplication challenge with keypad), `GrownUpsSettingsOverlay` (`Unlock All 16 Puzzles`, `Restore Purchase`, `Sound`/`Music` toggles, two-tap `Reset Stars & Progress`, `Re-Lock Magic Pack`, and `Exit App`), backed by `DataStorePurchaseService` and `unlockedAll` persistence.
+
 ---
 
 ## Archive: Earlier Web Prototype Decisions (2026-11-17)

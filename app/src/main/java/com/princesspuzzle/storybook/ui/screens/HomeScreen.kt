@@ -23,7 +23,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -54,7 +53,6 @@ import com.princesspuzzle.storybook.data.AppProgressState
 import com.princesspuzzle.storybook.puzzle.PuzzleLevels
 import com.princesspuzzle.storybook.ui.components.StorybookCircleGrownUpsButton
 import com.princesspuzzle.storybook.ui.components.StorybookLogoCrest
-import com.princesspuzzle.storybook.ui.components.StorybookNoticeOverlay
 import com.princesspuzzle.storybook.ui.components.StorybookPillButton
 import com.princesspuzzle.storybook.ui.components.StorybookStarSummaryPill
 import kotlin.math.PI
@@ -94,12 +92,16 @@ private const val HINT_TEXT_COLOR = 0xCC6A496E
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
-fun HomeScreen(progressState: AppProgressState, onPlayClick: () -> Unit, modifier: Modifier = Modifier) {
+fun HomeScreen(
+    progressState: AppProgressState,
+    onPlayClick: () -> Unit,
+    onGrownUpsClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val density = LocalDensity.current.density
     val backdropState = remember { MeadowBackdropState() }
     var elapsedSec by remember { mutableLongStateOf(0L) }
     var timeAccumulator by remember { mutableFloatStateOf(0f) }
-    var showGrownUpsNotice by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         var lastNanos = 0L
@@ -143,7 +145,7 @@ fun HomeScreen(progressState: AppProgressState, onPlayClick: () -> Unit, modifie
         ) {
             HomeTopBar(
                 earnedStars = progressState.totalStars,
-                onGrownUpsClick = { showGrownUpsNotice = true }
+                onGrownUpsClick = onGrownUpsClick
             )
 
             if (isLandscape) {
@@ -201,15 +203,6 @@ fun HomeScreen(progressState: AppProgressState, onPlayClick: () -> Unit, modifie
                     HomePlayAction(onPlayClick = onPlayClick)
                 }
             }
-        }
-
-        if (showGrownUpsNotice) {
-            StorybookNoticeOverlay(
-                title = stringResource(R.string.home_grownups_coming_title),
-                body = stringResource(R.string.home_grownups_coming_body),
-                okLabel = stringResource(R.string.dialog_ok),
-                onDismiss = { showGrownUpsNotice = false }
-            )
         }
     }
 }

@@ -1,5 +1,9 @@
 package com.princesspuzzle.storybook.ui
 
+import android.app.Activity
+import android.content.Context
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -8,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -18,12 +23,18 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.princesspuzzle.storybook.BuildConfig
+import com.princesspuzzle.storybook.R
 import com.princesspuzzle.storybook.data.AppProgressState
+import com.princesspuzzle.storybook.data.DataStorePurchaseService
 import com.princesspuzzle.storybook.data.ProgressRepository
 import com.princesspuzzle.storybook.data.ProgressRepositoryProvider
+import com.princesspuzzle.storybook.data.PurchaseService
 import com.princesspuzzle.storybook.puzzle.PuzzleLevels
 import com.princesspuzzle.storybook.puzzle.PuzzleViewModel
 import com.princesspuzzle.storybook.puzzle.PuzzleViewModelFactory
+import com.princesspuzzle.storybook.ui.components.GrownUpsActions
+import com.princesspuzzle.storybook.ui.components.GrownUpsSettingsOverlay
+import com.princesspuzzle.storybook.ui.components.ParentalGateOverlay
 import com.princesspuzzle.storybook.ui.screens.HomeScreen
 import com.princesspuzzle.storybook.ui.screens.LevelSelectScreen
 import com.princesspuzzle.storybook.ui.screens.PuzzleScreen
@@ -82,101 +93,195 @@ private object Routes {
     fun puzzlePlay(levelId: Int): String = "puzzle_play/$levelId"
 }
 
+private fun navigateBackToLevelSelect(navController: NavHostController) {
+    if (!navController.popBackStack(Routes.LEVEL_SELECT, inclusive = false)) {
+        navController.navigate(Routes.LEVEL_SELECT) {
+            popUpTo(Routes.HOME) { inclusive = false }
+            launchSingleTop = true
+        }
+    }
+}
+
 @Composable
 fun PrincessPuzzleNavHost(initialBenchmarkLevelId: Int? = null) {
     val context = LocalContext.current
     val progressRepository = remember(context) { ProgressRepositoryProvider.get(context) }
+    val purchaseService = remember(progressRepository) { DataStorePurchaseService(progressRepository) }
     val progressState by progressRepository.progressFlow.collectAsState()
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
-    val debugUnlockAll = BuildConfig.DEBUG && BuildConfig.UNLOCK_ALL_FOR_DEBUG
+    var debugBypassLocks by remember { mutableStateOf(BuildConfig.DEBUG && BuildConfig.UNLOCK_ALL_FOR_DEBUG) }
+    val debugUnlockAll = BuildConfig.DEBUG && BuildConfig.UNLOCK_ALL_FOR_DEBUG && debugBypassLocks
     var lockedNoticeLevelId by remember { mutableStateOf<Int?>(null) }
+    var showParentalGate by remember { mutableStateOf(false) }
+    var showGrownUpsCorner by remember { mutableStateOf(false) }
+    var grownUpsStatusMessage by remember { mutableStateOf<String?>(null) }
     val startRoute = remember(initialBenchmarkLevelId) {
         if (initialBenchmarkLevelId != null) Routes.puzzlePlay(initialBenchmarkLevelId) else Routes.HOME
     }
-    val navigateBackToLevels: () -> Unit = {
-        if (!navController.popBackStack(Routes.LEVEL_SELECT, inclusive = false)) {
-            navController.navigate(Routes.LEVEL_SELECT) {
-                popUpTo(Routes.HOME) { inclusive = false }
-                launchSingleTop = true
-            }
-        }
+    val openGate = {
+        grownUpsStatusMessage = null
+        showParentalGate = true
     }
+    val backToLevels = { navigateBackToLevelSelect(navController) }
+    val actions = rememberGrownUpsActions(
+        context,
+        progressRepository,
+        purchaseService,
+        progressState,
+        scope
+    ) { grownUpsStatusMessage = it }
 
-    NavHost(
-        navController = navController,
-        startDestination = startRoute
-    ) {
-        composable(Routes.HOME) {
-            HomeScreen(
-                progressState = progressState,
-                onPlayClick = {
-                    navController.navigate(Routes.LEVEL_SELECT) {
-                        launchSingleTop = true
-                    }
-                }
-            )
-        }
-
-        composable(Routes.LEVEL_SELECT) {
-            LevelSelectScreen(
-                progressState = progressState,
-                onBackHome = { navController.popBackStack() },
-                onSelectLevel = { levelId ->
-                    val accessible = isRouteLevelAccessible(
-                        levelId = levelId,
-                        progressState = progressState,
-                        debugUnlockAll = debugUnlockAll
-                    )
-                    if (accessible) {
-                        lockedNoticeLevelId = null
-                        scope.launch(NonCancellable) { progressRepository.setLastSelectedLevelId(levelId) }
-                        navController.navigate(Routes.puzzlePlay(levelId)) {
-                            launchSingleTop = true
-                        }
-                    } else {
-                        lockedNoticeLevelId = levelId
-                    }
-                },
-                debugUnlockAll = debugUnlockAll,
-                lockedNoticeLevelId = lockedNoticeLevelId,
-                onShowLockedNotice = { lockedNoticeLevelId = it },
-                onDismissLockedNotice = { lockedNoticeLevelId = null }
-            )
-        }
-
-        composable(
-            route = Routes.PUZZLE_PLAY_TEMPLATE,
-            arguments = listOf(navArgument(Routes.ARG_LEVEL_ID) { type = NavType.IntType })
-        ) { backStackEntry ->
-            val levelId = backStackEntry.arguments?.getInt(Routes.ARG_LEVEL_ID) ?: 1
-            val canAccess = isRouteLevelAccessible(
-                levelId = levelId,
-                progressState = progressState,
-                debugUnlockAll = debugUnlockAll,
-                benchmarkLevelId = initialBenchmarkLevelId
-            )
-            if (!canAccess) {
-                LaunchedEffect(levelId) {
-                    lockedNoticeLevelId = levelId
-                    navigateBackToLevels()
-                }
-            } else {
-                PuzzlePlayDestination(
-                    levelId = levelId,
-                    owner = backStackEntry,
-                    progressRepository = progressRepository,
-                    debugUnlockAll = debugUnlockAll,
-                    scope = scope,
-                    navController = navController,
-                    onNavigateBackToLevels = navigateBackToLevels,
-                    onLockedRedirect = { lockedId ->
-                        lockedNoticeLevelId = lockedId
-                        navigateBackToLevels()
-                    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        NavHost(navController = navController, startDestination = startRoute) {
+            composable(Routes.HOME) {
+                HomeScreen(
+                    progressState = progressState,
+                    onPlayClick = { navController.navigate(Routes.LEVEL_SELECT) { launchSingleTop = true } },
+                    onGrownUpsClick = openGate
                 )
             }
+            composable(Routes.LEVEL_SELECT) {
+                LevelSelectScreen(
+                    progressState = progressState,
+                    onBackHome = { navController.popBackStack() },
+                    onSelectLevel = { levelId ->
+                        if (isRouteLevelAccessible(levelId, progressState, debugUnlockAll)) {
+                            lockedNoticeLevelId = null
+                            scope.launch(NonCancellable) { progressRepository.setLastSelectedLevelId(levelId) }
+                            navController.navigate(Routes.puzzlePlay(levelId)) { launchSingleTop = true }
+                        } else {
+                            lockedNoticeLevelId = levelId
+                        }
+                    },
+                    debugUnlockAll = debugUnlockAll,
+                    lockedNoticeLevelId = lockedNoticeLevelId,
+                    onShowLockedNotice = { lockedNoticeLevelId = it },
+                    onDismissLockedNotice = { lockedNoticeLevelId = null },
+                    onOpenGrownUps = openGate,
+                    onToggleDebugUnlock = if (BuildConfig.DEBUG) ({ debugBypassLocks = !debugBypassLocks }) else null
+                )
+            }
+            composable(
+                route = Routes.PUZZLE_PLAY_TEMPLATE,
+                arguments = listOf(navArgument(Routes.ARG_LEVEL_ID) { type = NavType.IntType })
+            ) { backStackEntry ->
+                val levelId = backStackEntry.arguments?.getInt(Routes.ARG_LEVEL_ID) ?: 1
+                val canAccess = isRouteLevelAccessible(levelId, progressState, debugUnlockAll, initialBenchmarkLevelId)
+                if (!canAccess) {
+                    LaunchedEffect(levelId) {
+                        lockedNoticeLevelId = levelId
+                        backToLevels()
+                    }
+                } else {
+                    PuzzlePlayDestination(
+                        levelId = levelId,
+                        owner = backStackEntry,
+                        progressRepository = progressRepository,
+                        debugUnlockAll = debugUnlockAll,
+                        scope = scope,
+                        navController = navController,
+                        onNavigateBackToLevels = backToLevels,
+                        onLockedRedirect = { lockedId ->
+                            lockedNoticeLevelId = lockedId
+                            backToLevels()
+                        }
+                    )
+                }
+            }
         }
+        GrownUpsModals(
+            showParentalGate = showParentalGate,
+            showGrownUpsCorner = showGrownUpsCorner,
+            progressState = progressState,
+            statusMessage = grownUpsStatusMessage,
+            actions = actions,
+            onDismissGate = { showParentalGate = false },
+            onGatePassed = {
+                showParentalGate = false
+                grownUpsStatusMessage = null
+                showGrownUpsCorner = true
+            },
+            onDismissGrownUps = {
+                showGrownUpsCorner = false
+                grownUpsStatusMessage = null
+            }
+        )
+    }
+}
+
+@Composable
+private fun GrownUpsModals(
+    showParentalGate: Boolean,
+    showGrownUpsCorner: Boolean,
+    progressState: AppProgressState,
+    statusMessage: String?,
+    actions: GrownUpsActions,
+    onDismissGate: () -> Unit,
+    onGatePassed: () -> Unit,
+    onDismissGrownUps: () -> Unit
+) {
+    if (showParentalGate) {
+        ParentalGateOverlay(onVerified = onGatePassed, onDismiss = onDismissGate)
+    }
+    if (showGrownUpsCorner) {
+        GrownUpsSettingsOverlay(
+            progressState = progressState,
+            statusMessage = statusMessage,
+            actions = actions,
+            onDismiss = onDismissGrownUps
+        )
+    }
+}
+
+@Composable
+private fun rememberGrownUpsActions(
+    context: Context,
+    progressRepository: ProgressRepository,
+    purchaseService: PurchaseService,
+    progressState: AppProgressState,
+    scope: CoroutineScope,
+    onStatusMessage: (String) -> Unit
+): GrownUpsActions {
+    return remember(context, progressRepository, purchaseService, progressState, scope) {
+        GrownUpsActions(
+            onUnlockAll = {
+                scope.launch(NonCancellable) {
+                    purchaseService.purchaseUnlockAll()
+                    onStatusMessage(context.getString(R.string.grownups_status_unlocked))
+                }
+            },
+            onRestorePurchase = {
+                scope.launch(NonCancellable) {
+                    val restored = purchaseService.restorePurchases()
+                    val msgId = if (restored) {
+                        R.string.grownups_status_restored
+                    } else {
+                        R.string.grownups_status_no_purchase
+                    }
+                    onStatusMessage(context.getString(msgId))
+                }
+            },
+            onRelockPack = {
+                scope.launch(NonCancellable) {
+                    purchaseService.resetSimulatedPurchase()
+                    onStatusMessage(context.getString(R.string.grownups_status_relocked))
+                }
+            },
+            onToggleSound = {
+                scope.launch(NonCancellable) { progressRepository.setSoundEnabled(!progressState.soundEnabled) }
+            },
+            onToggleMusic = {
+                scope.launch(NonCancellable) { progressRepository.setMusicEnabled(!progressState.musicEnabled) }
+            },
+            onResetProgress = {
+                scope.launch(NonCancellable) {
+                    progressRepository.resetProgress()
+                    onStatusMessage(context.getString(R.string.grownups_status_reset_done))
+                }
+            },
+            onExitApp = { (context as? Activity)?.finish() }
+        )
     }
 }
 

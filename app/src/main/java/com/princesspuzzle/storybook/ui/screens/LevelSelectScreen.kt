@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.princesspuzzle.storybook.BuildConfig
 import com.princesspuzzle.storybook.R
 import com.princesspuzzle.storybook.art.MeadowBackdropState
 import com.princesspuzzle.storybook.art.SceneIllustrations
@@ -90,7 +91,9 @@ fun LevelSelectScreen(
     debugUnlockAll: Boolean = false,
     lockedNoticeLevelId: Int? = null,
     onShowLockedNotice: (Int) -> Unit = {},
-    onDismissLockedNotice: () -> Unit = {}
+    onDismissLockedNotice: () -> Unit = {},
+    onOpenGrownUps: () -> Unit = {},
+    onToggleDebugUnlock: (() -> Unit)? = null
 ) {
     val backdropState = remember { MeadowBackdropState() }
     val gridState = rememberLazyGridState()
@@ -127,6 +130,13 @@ fun LevelSelectScreen(
                 StorybookStarSummaryPill(
                     earnedStars = progressState.totalStars,
                     totalStars = PuzzleLevels.MAX_TOTAL_STARS
+                )
+            }
+
+            if (BuildConfig.DEBUG && onToggleDebugUnlock != null) {
+                DebugLockToggleBanner(
+                    debugUnlockAll = debugUnlockAll,
+                    onToggle = onToggleDebugUnlock
                 )
             }
 
@@ -179,9 +189,44 @@ fun LevelSelectScreen(
                 onDismiss = {
                     localLockedLevelId = null
                     onDismissLockedNotice()
+                },
+                secondaryLabel = stringResource(R.string.levels_locked_open_grownups),
+                onSecondaryClick = {
+                    localLockedLevelId = null
+                    onDismissLockedNotice()
+                    onOpenGrownUps()
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun DebugLockToggleBanner(debugUnlockAll: Boolean, onToggle: () -> Unit) {
+    val shape = RoundedCornerShape(CHIP_CORNER_DP.dp)
+    val bgColor = if (debugUnlockAll) StorybookPalette.ButtonBlueBottom else StorybookPalette.PetalPink
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = TOP_GAP_DP.dp)
+            .clip(shape)
+            .background(bgColor)
+            .border(CHIP_BORDER_DP.dp, StorybookPalette.Ink, shape)
+            .clickable(role = Role.Button, onClick = onToggle)
+            .padding(horizontal = CHIP_PAD_H_DP.dp, vertical = CHIP_PAD_V_DP.dp)
+    ) {
+        Text(
+            text = if (debugUnlockAll) {
+                stringResource(R.string.debug_bypass_on_chip)
+            } else {
+                stringResource(R.string.debug_bypass_off_chip)
+            },
+            color = StorybookPalette.Ink,
+            fontSize = CHIP_FONT_SP.sp,
+            fontWeight = FontWeight.ExtraBold,
+            textAlign = TextAlign.Center
+        )
     }
 }
 

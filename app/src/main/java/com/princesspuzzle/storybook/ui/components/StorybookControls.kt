@@ -412,7 +412,9 @@ fun StorybookNoticeOverlay(
     body: String,
     okLabel: String,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    secondaryLabel: String? = null,
+    onSecondaryClick: (() -> Unit)? = null
 ) {
     val cardShape = RoundedCornerShape(NOTICE_CORNER_DP.dp)
     Box(
@@ -458,12 +460,25 @@ fun StorybookNoticeOverlay(
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
-            StorybookPillButton(
-                label = okLabel,
-                topColor = StorybookPalette.ButtonPinkTop,
-                bottomColor = StorybookPalette.ButtonPinkBottom,
-                onClick = onDismiss
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(NOTICE_GAP_DP.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (secondaryLabel != null && onSecondaryClick != null) {
+                    StorybookPillButton(
+                        label = secondaryLabel,
+                        topColor = StorybookPalette.ButtonBlueTop,
+                        bottomColor = StorybookPalette.ButtonBlueBottom,
+                        onClick = onSecondaryClick
+                    )
+                }
+                StorybookPillButton(
+                    label = okLabel,
+                    topColor = StorybookPalette.ButtonPinkTop,
+                    bottomColor = StorybookPalette.ButtonPinkBottom,
+                    onClick = onDismiss
+                )
+            }
         }
     }
 }
