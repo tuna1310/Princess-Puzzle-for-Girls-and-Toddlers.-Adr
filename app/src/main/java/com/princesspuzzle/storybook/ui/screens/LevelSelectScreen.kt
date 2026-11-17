@@ -87,11 +87,15 @@ fun LevelSelectScreen(
     onBackHome: () -> Unit,
     onSelectLevel: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    debugUnlockAll: Boolean = false
+    debugUnlockAll: Boolean = false,
+    lockedNoticeLevelId: Int? = null,
+    onShowLockedNotice: (Int) -> Unit = {},
+    onDismissLockedNotice: () -> Unit = {}
 ) {
     val backdropState = remember { MeadowBackdropState() }
     val gridState = rememberLazyGridState()
-    var showLockedDialog by remember { mutableStateOf(false) }
+    var localLockedLevelId by remember { mutableStateOf<Int?>(null) }
+    val activeLockedLevelId = lockedNoticeLevelId ?: localLockedLevelId
 
     BackHandler { onBackHome() }
 
@@ -152,7 +156,8 @@ fun LevelSelectScreen(
                             if (unlocked) {
                                 onSelectLevel(level.id)
                             } else {
-                                showLockedDialog = true
+                                localLockedLevelId = level.id
+                                onShowLockedNotice(level.id)
                             }
                         }
                     )
@@ -160,12 +165,21 @@ fun LevelSelectScreen(
             }
         }
 
-        if (showLockedDialog) {
+        if (activeLockedLevelId != null) {
+            val lockedLevel = PuzzleLevels.ALL.firstOrNull { it.id == activeLockedLevelId }
+            val noticeBody = if (lockedLevel != null) {
+                stringResource(R.string.levels_locked_named_body, stringResource(lockedLevel.titleRes))
+            } else {
+                stringResource(R.string.levels_locked_body)
+            }
             StorybookNoticeOverlay(
                 title = stringResource(R.string.levels_locked_title),
-                body = stringResource(R.string.levels_locked_body),
+                body = noticeBody,
                 okLabel = stringResource(R.string.dialog_ok),
-                onDismiss = { showLockedDialog = false }
+                onDismiss = {
+                    localLockedLevelId = null
+                    onDismissLockedNotice()
+                }
             )
         }
     }

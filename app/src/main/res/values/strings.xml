@@ -10,7 +10,8 @@
     <string name="home_grownups_coming_body">Parental gate and settings arrive in Step 5!</string>
     <string name="levels_title">Choose a Picture</string>
     <string name="levels_locked_title">Magic Pack Puzzle</string>
-    <string name="levels_locked_body">Ask a grown-up to unlock all 16 puzzles in Step 5!</string>
+    <string name="levels_locked_body">Ask a grown-up to unlock all 16 fairy-tale puzzles in Grown-Ups Corner!</string>
+    <string name="levels_locked_named_body">Ask a grown-up to unlock \"%1$s\" and all 16 fairy-tale puzzles in Grown-Ups Corner!</string>
     <string name="dialog_ok">OK</string>
     <string name="cd_grownups_button">Grown-ups settings</string>
     <string name="cd_back_to_home">Back to home</string>

@@ -7,6 +7,7 @@ import com.princesspuzzle.storybook.puzzle.PieceStatus
 import com.princesspuzzle.storybook.puzzle.PuzzleLevels
 import com.princesspuzzle.storybook.puzzle.PuzzleViewModel
 import com.princesspuzzle.storybook.ui.NextLevelDestination
+import com.princesspuzzle.storybook.ui.isRouteLevelAccessible
 import com.princesspuzzle.storybook.ui.resolveNextLevelDestination
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -133,5 +134,29 @@ class PuzzleTransitionTest {
         assertEquals(0, vm.uiState.value.placedCount)
         assertFalse(vm.particles.hasActiveParticles())
         assertEquals(3, repo.progressFlow.value.starsFor(2))
+    }
+
+    @Test
+    fun `locked levels and out-of-range ids are safely blocked and bounce back to level select`() {
+        val lockedState = AppProgressState(unlockedAll = false)
+        assertTrue(isRouteLevelAccessible(1, lockedState, debugUnlockAll = false))
+        assertTrue(isRouteLevelAccessible(4, lockedState, debugUnlockAll = false))
+        assertFalse(isRouteLevelAccessible(5, lockedState, debugUnlockAll = false))
+        assertFalse(isRouteLevelAccessible(16, lockedState, debugUnlockAll = false))
+        assertFalse(isRouteLevelAccessible(99, lockedState, debugUnlockAll = false))
+        assertFalse(isRouteLevelAccessible(0, lockedState, debugUnlockAll = false))
+
+        assertEquals(
+            NextLevelDestination.BlockedLocked(5),
+            resolveNextLevelDestination(4, lockedState, debugUnlockAll = false)
+        )
+
+        val unlockedState = AppProgressState(unlockedAll = true)
+        assertTrue(isRouteLevelAccessible(5, unlockedState, debugUnlockAll = false))
+        assertTrue(isRouteLevelAccessible(16, unlockedState, debugUnlockAll = false))
+        assertEquals(
+            NextLevelDestination.OpenPuzzle(5),
+            resolveNextLevelDestination(4, unlockedState, debugUnlockAll = false)
+        )
     }
 }
