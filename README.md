@@ -1,40 +1,54 @@
-# Princess Storybook Puzzle
+# Princess Storybook Puzzle (Android)
 
-An original pastel storybook jigsaw puzzle web game (PWA) built with **Vite**, **TypeScript**, and **HTML5 Canvas 2D**, crafted for toddlers and young children aged 1 to 6.
+A kid-safe native **Android** jigsaw puzzle app built with **Kotlin**, **Jetpack Compose**, **Canvas/Path**, and **Gradle Kotlin DSL**, designed for toddlers and young girls aged 1 to 6.
 
-## Features (Steps 1 & 2)
+> **Reference Prototype**: The earlier Vite + TypeScript + HTML5 Canvas web prototype is archived in [`web-prototype/`](web-prototype/) with full git history for reference.
 
-- **Zero-Punishment Jigsaw Gameplay**: Smooth Bezier interlocking pieces, dimmed ghost silhouette board, magnetic snap glow, upward touch-lift offset, and playful spring-return physics when pieces are released outside their slot.
-- **Responsive Portrait & Landscape**: Adapts cleanly to phones and tablets in both orientations with HiDPI (`devicePixelRatio`) rendering and full touch isolation (`touch-action: none`).
-- **Original Storybook Art & WebAudio**: Hand-crafted procedural pastel scenes and gentle marimba/chime sound effects with zero copyrighted assets, zero ads, and zero tracking.
-- **Living Win Rewards**: Completed puzzles dissolve seam lines, trigger living scene animations, burst pastel confetti fireworks, and award celebratory stars.
-- **PWA & LAN Ready**: Configured with `vite-plugin-pwa` for offline play and `host: true` for instant mobile testing over Wi-Fi.
+## Key Features (Android Steps 1 & 2)
+- **100% Compose & Canvas UI**: Single `MainActivity` with `SplashScreen` API, immersive fullscreen system bars, `FLAG_KEEP_SCREEN_ON`, and zero XML layouts.
+- **Kid-Safe Privacy**: No `INTERNET` permission, no `ADVERTISING_ID`, no ads, no analytics/tracking, English-only `strings.xml`.
+- **Watertight Jigsaw Slicer (2–12 Pieces)**: Smooth Bezier interlocking puzzle cuts ported cleanly to Kotlin (`JigsawSlicer`).
+- **Zero-Allocation 2D Drag & Bounce Physics**: Frame-driven (`withFrameNanos`) spring/drop/bounce return physics, upward touch-lift offset, magnetic slot glow, anti-stuck timeout & multi-touch isolation, and automatic inactivity hint shimmer.
+- **Responsive Portrait & Landscape**: Preserves active puzzle progress seamlessly across screen rotations via `ViewModel` + `StateFlow`.
 
-## Getting Started
+## Commands
 
 ```bash
-npm install
-npm run dev
+# Run unit tests
+./gradlew test
+
+# Run Android Lint, ktlint, and detekt
+./gradlew lint ktlintCheck detekt
+
+# Build debug APK
+./gradlew assembleDebug
+
+# Install directly to connected Android phone or running emulator
+./gradlew installDebug
+
+# Build release AAB (requires signing env vars for release keystore)
+./gradlew bundleRelease
 ```
 
-Vite exposes the dev server on your local network (`--host` enabled in `vite.config.ts`). Open the printed `Network: http://<your-lan-ip>:5173` URL on your phone or tablet on the same Wi-Fi network.
-
-## Scripts
-
-- `npm run dev` — Start development server with LAN access (`host: true`).
-- `npm run build` — Type-check and build production PWA bundle into `dist/`.
-- `npm run preview` — Preview production build with LAN access.
-- `npm run test` — Run Vitest unit test suite.
-- `npm run lint` — Run ESLint with zero warnings allowed.
-- `npm run format` — Format all files with Prettier.
-- `npm run typecheck` — Run strict TypeScript check (`tsc --noEmit`).
+## Installing on a Physical Android Phone via ADB
+1. On your Android phone, open **Settings > About phone** and tap **Build number** 7 times to enable **Developer options**.
+2. Open **Settings > System > Developer options** and enable **USB debugging** (or **Wireless debugging** over Wi-Fi on Android 11+).
+3. Connect via USB (or run `adb pair <ip>:<pair-port>` then `adb connect <ip>:<port>` for Wireless debugging).
+4. Verify your device appears:
+   ```bash
+   adb devices
+   ```
+5. Install and launch:
+   ```bash
+   ./gradlew installDebug
+   ```
 
 ## Project Structure
-
-- `src/i18n/` — `en.json` strings and `t(key)` translator.
-- `src/storage/` — Progress persistence and `PurchaseService` interface (`unlockedAll`).
-- `src/audio/` — Procedural WebAudio chime, bounce, snap, and fanfare synthesizer.
-- `src/art/` — Original storybook backdrops, puzzle illustrations, and living win animations.
-- `src/game/` — Jigsaw slicer, 2D physics engine, particle system, level catalog, and screens.
-- `src/core/` — HiDPI Canvas manager, responsive layout solver, pointer input controller.
-- `src/tests/` — Vitest unit tests for i18n, jigsaw slicing, physics, and storage.
+- `app/src/main/java/com/princesspuzzle/storybook/`
+  - `core/` — `GameConfig` constants and responsive `PuzzleLayout` solver.
+  - `puzzle/` — `JigsawSlicer`, `PuzzlePhysicsEngine`, `PuzzleLevels`, `PuzzleViewModel`.
+  - `art/` — `MeadowBackdrop`, `StarterIllustrations`, `DrawUtils`, `ConfettiParticles`.
+  - `audio/` — Audio engine interface (synthesizer arriving in Step 6).
+  - `data/` — `PurchaseService` interface & storage contracts.
+  - `ui/` — Compose screens, chunky toddler controls, theme, navigation.
+- `web-prototype/` — Reference Vite + TypeScript web prototype.

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Princess Storybook Puzzle</string>
+    <string name="hud_progress">%1$d / %2$d</string>
+    <plurals name="hud_pieces_badge">
+        <item quantity="one">%1$d pc</item>
+        <item quantity="other">%1$d pcs</item>
+    </plurals>
+    <string name="puzzle_drag_hint">Drag each piece to the matching spot!</string>
+    <string name="win_headline">Wonderful!</string>
+    <string name="win_subheadline">You finished %1$s!</string>
+    <string name="win_play_again">Play Again</string>
+    <string name="win_next_puzzle">Next Puzzle</string>
+    <string name="cd_back_button">Restart puzzle</string>
+
+    <string name="level_1_title">Starlight Tiara</string>
+    <string name="level_2_title">Clover Bunny Princess</string>
+    <string name="level_3_title">Cloudberry Unicorn</string>
+    <string name="level_4_title">Cupcake Blossom Castle</string>
+    <string name="level_5_title">Pippin Baby Dragon</string>
+    <string name="level_6_title">Butterfly Carriage</string>
+    <string name="level_7_title">Willow &amp; Bluebird</string>
+    <string name="level_8_title">Pearl Mermaid Kitten</string>
+    <string name="level_9_title">Berry Tea Party</string>
+    <string name="level_10_title">Fairy Treehouse</string>
+    <string name="level_11_title">Moonlight Harp</string>
+    <string name="level_12_title">Crystal Ribbon Swan</string>
+    <string name="level_13_title">Garden Pegasus Foal</string>
+    <string name="level_14_title">Lantern Sky Princess</string>
+    <string name="level_15_title">Rainbow Carousel Pony</string>
+    <string name="level_16_title">Grand Storybook Ball</string>
+</resources>

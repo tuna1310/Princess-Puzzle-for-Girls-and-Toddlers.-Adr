@@ -1,0 +1,52 @@
+build:
+  maxIssues: 0
+
+config:
+  validation: true
+
+naming:
+  FunctionNaming:
+    active: true
+    ignoreAnnotated:
+      - Composable
+  MatchingDeclarationName:
+    active: false
+
+complexity:
+  LongMethod:
+    active: true
+    threshold: 120
+  LongParameterList:
+    active: true
+    functionThreshold: 12
+    constructorThreshold: 12
+  TooManyFunctions:
+    active: true
+    thresholdInFiles: 25
+    thresholdInClasses: 20
+    thresholdInObjects: 20
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 25
+
+style:
+  MagicNumber:
+    active: true
+    ignoreNumbers:
+      - '-1'
+      - '0'
+      - '0.5'
+      - '1'
+      - '2'
+    ignorePropertyDeclaration: true
+    ignoreConstantDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreAnnotated:
+      - Preview
+    excludes:
+      - '**/art/**'
+      - '**/test/**'
+  MaxLineLength:
+    active: true
+    maxLineLength: 120
+    excludeCommentStatements: true
