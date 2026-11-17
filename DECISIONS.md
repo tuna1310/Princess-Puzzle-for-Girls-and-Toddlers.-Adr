@@ -34,6 +34,10 @@
    - **Decision**: Consolidated all 16 level definitions, piece counts (fixed 2..12 per level; removed release piece-count switcher via `BuildConfig.DEBUG`), and unlock queries in `PuzzleLevels.kt`, backed by an LRU `ImageBitmap` cache (`ARTWORK_LRU_CAPACITY = 3`) plus `200px` thumbnail cache in `SceneIllustrations.kt` and 16 unique per-theme celebration animations in `LivingCelebrations.kt`.
    - **Rationale**: Keeps adding new levels trivial while preventing heap bloat across all 16 scenes (`~3x` full-resolution bitmaps active at once instead of 16).
 
+9. **Home, 16-Level Grid & Singleton DataStore Persistence (Step 4)**
+   - **Decision**: Implemented `Home` -> `LevelSelect` -> `PuzzlePlay/{levelId}` navigation in `AppNavHost.kt` with a process-wide singleton `ProgressRepositoryProvider` wrapping Jetpack DataStore (`schema_version = 1`, `ProgressSchemaMigration`), `PuzzleViewModelFactory` scoped per navigation back-stack entry for rotation safety, and fixed `Next` / `Levels` completion actions (read-only piece badge in puzzle HUD).
+   - **Rationale**: Prevents duplicate DataStore file conflicts across configuration changes, ensures earned stars and unlocks survive cold restarts cleanly, and prevents toddlers from exiting the app via system Back during active play.
+
 ---
 
 ## Archive: Earlier Web Prototype Decisions (2026-11-17)

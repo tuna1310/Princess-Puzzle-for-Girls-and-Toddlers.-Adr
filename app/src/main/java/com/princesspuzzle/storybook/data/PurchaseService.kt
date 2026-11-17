@@ -31,3 +31,21 @@ class InMemoryPurchaseService(initialUnlockedAll: Boolean = false) : PurchaseSer
         unlockedAll = false
     }
 }
+
+class DataStorePurchaseService(
+    private val progressRepository: ProgressRepository
+) : PurchaseService {
+
+    override fun isUnlockedAll(): Boolean = progressRepository.progressFlow.value.unlockedAll
+
+    override suspend fun purchaseUnlockAll(): Boolean {
+        progressRepository.setUnlockedAll(true)
+        return true
+    }
+
+    override suspend fun restorePurchases(): Boolean = progressRepository.progressFlow.value.unlockedAll
+
+    override suspend fun resetSimulatedPurchase() {
+        progressRepository.setUnlockedAll(false)
+    }
+}

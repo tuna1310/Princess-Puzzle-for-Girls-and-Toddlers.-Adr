@@ -2,6 +2,13 @@
 
 All notable changes to **Princess Storybook Puzzle** are documented here.
 
+## Android Step 4 — Home Screen, 16-Level Grid, Rotation & DataStore Persistence
+- Added custom storybook `HomeScreen` featuring the self-designed crown & ribbon logo crest, slowly revolving storybook preview medallion wheel, star summary pill, large `>= 80dp` `Play` button, and placeholder `Grown-Ups` corner button.
+- Added adaptive `LevelSelectScreen` grid displaying all 16 levels with `200px` cached procedural thumbnails, star rows, free/locked indicators (Levels 1–4 free, 5–16 locked behind gentle parental pack notice), and rotation-safe scroll state.
+- Implemented Jetpack DataStore persistence (`DataStoreProgressRepository`) saving per-level stars, unlocked levels, `unlockedAll`, last selected puzzle, sound/music preferences, and `schema_version = 1` with `ProgressSchemaMigration` and `DataStorePurchaseService`.
+- Updated puzzle completion overlay (`Next` and `Levels` hero buttons) and system/top-bar Back navigation so leaving an active puzzle always returns cleanly to Level Select.
+- Added DataStore persistence, v0 -> v1 migration, and reset unit tests in `ProgressDataStoreTest.kt`.
+
 ## Android Step 3 — Full 16 Levels, Original Scenes & Unique Living Rewards
 - Completed original pastel illustrations for Levels 5–16 (`EnchantedScenesA.kt`, `EnchantedScenesB.kt`) covering 5 to 12 pieces progressively, with English titles stored in `strings.xml`.
 - Implemented 16 unique non-repeating living reward animations (`LivingCelebrations.kt`) tailored to each theme (bubbles, rotating carriage wheels, drifting willow leaves, teapot steam, fireflies, harp sound waves, pond ripples, comet streaks, sky lanterns, marquee lights, chandelier prisms).

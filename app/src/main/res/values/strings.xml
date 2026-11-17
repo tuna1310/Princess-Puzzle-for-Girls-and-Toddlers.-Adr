@@ -1,6 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Princess Storybook Puzzle</string>
+    <string name="app_title_short">Princess</string>
+    <string name="app_subtitle">Fairy-Tale Picture Puzzles</string>
+    <string name="home_play">Play</string>
+    <string name="home_stars_summary">%1$d / %2$d</string>
+    <string name="home_spin_hint">Spin the wheel and tap Play!</string>
+    <string name="home_grownups_coming_title">Grown-Ups Corner</string>
+    <string name="home_grownups_coming_body">Parental gate and settings arrive in Step 5!</string>
+    <string name="levels_title">Choose a Picture</string>
+    <string name="levels_locked_title">Magic Pack Puzzle</string>
+    <string name="levels_locked_body">Ask a grown-up to unlock all 16 puzzles in Step 5!</string>
+    <string name="dialog_ok">OK</string>
+    <string name="cd_grownups_button">Grown-ups settings</string>
+    <string name="cd_back_to_home">Back to home</string>
+    <string name="cd_back_to_levels">Back to level select</string>
+    <string name="cd_locked_level">Locked puzzle</string>
     <string name="hud_progress">%1$d / %2$d</string>
     <plurals name="hud_pieces_badge">
         <item quantity="one">%1$d pc</item>
@@ -9,9 +24,8 @@
     <string name="puzzle_drag_hint">Drag each piece to the matching spot!</string>
     <string name="win_headline">Wonderful!</string>
     <string name="win_subheadline">You finished %1$s!</string>
-    <string name="win_play_again">Play Again</string>
-    <string name="win_next_puzzle">Next Puzzle</string>
-    <string name="cd_back_button">Restart puzzle</string>
+    <string name="win_next">Next</string>
+    <string name="win_levels">Levels</string>
 
     <string name="level_1_title">Starlight Tiara</string>
     <string name="level_2_title">Clover Bunny Princess</string>

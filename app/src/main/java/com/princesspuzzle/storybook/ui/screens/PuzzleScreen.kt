@@ -53,7 +53,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.princesspuzzle.storybook.BuildConfig
 import com.princesspuzzle.storybook.R
 import com.princesspuzzle.storybook.art.MeadowBackdropState
 import com.princesspuzzle.storybook.art.SceneIllustrations
@@ -159,13 +158,18 @@ private class RenderScratchCache(density: Float) {
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
-fun PuzzleScreen(viewModel: PuzzleViewModel, onNavigateBack: () -> Unit, modifier: Modifier = Modifier) {
+fun PuzzleScreen(
+    viewModel: PuzzleViewModel,
+    onNavigateBackToLevels: () -> Unit,
+    onNextLevel: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val uiState by viewModel.uiState.collectAsState()
     val density = LocalDensity.current.density
     val scratch = remember(density) { RenderScratchCache(density) }
     var frameTickNanos by remember { mutableLongStateOf(0L) }
 
-    BackHandler { onNavigateBack() }
+    BackHandler { onNavigateBackToLevels() }
 
     LaunchedEffect(Unit) {
         var lastNanos = 0L
@@ -215,7 +219,11 @@ fun PuzzleScreen(viewModel: PuzzleViewModel, onNavigateBack: () -> Unit, modifie
             }
         }
 
-        PuzzleTopHud(layout = layout, uiState = uiState, viewModel = viewModel)
+        PuzzleTopHud(
+            layout = layout,
+            uiState = uiState,
+            onNavigateBackToLevels = onNavigateBackToLevels
+        )
 
         if (!uiState.completed &&
             uiState.placedCount == 0 &&
@@ -229,8 +237,8 @@ fun PuzzleScreen(viewModel: PuzzleViewModel, onNavigateBack: () -> Unit, modifie
                 layout = layout,
                 uiState = uiState,
                 winTimerSec = viewModel.winTimerSec,
-                onReplay = { viewModel.replay() },
-                onNextPuzzle = { viewModel.nextLevelOrDemo() }
+                onLevels = onNavigateBackToLevels,
+                onNextPuzzle = onNextLevel
             )
         }
     }
@@ -282,7 +290,7 @@ private suspend fun PointerInputScope.handlePuzzlePointerInput(viewModel: Puzzle
 }
 
 @Composable
-private fun PuzzleTopHud(layout: PuzzleLayout, uiState: PuzzleUiState, viewModel: PuzzleViewModel) {
+private fun PuzzleTopHud(layout: PuzzleLayout, uiState: PuzzleUiState, onNavigateBackToLevels: () -> Unit) {
     val topPadDp = with(LocalDensity.current) { layout.topBar.y.toDp() }
     val sidePadDp = with(LocalDensity.current) { layout.topBar.x.toDp() }
     Row(
@@ -293,8 +301,8 @@ private fun PuzzleTopHud(layout: PuzzleLayout, uiState: PuzzleUiState, viewModel
             .padding(start = sidePadDp, end = sidePadDp, top = topPadDp)
     ) {
         StorybookCircleBackButton(
-            contentDescriptionText = stringResource(R.string.cd_back_button),
-            onClick = { viewModel.replay() }
+            contentDescriptionText = stringResource(R.string.cd_back_to_levels),
+            onClick = onNavigateBackToLevels
         )
 
         Box(
@@ -307,19 +315,10 @@ private fun PuzzleTopHud(layout: PuzzleLayout, uiState: PuzzleUiState, viewModel
             )
         }
 
-        if (BuildConfig.DEBUG) {
-            StorybookPillButton(
-                label = pluralStringResource(R.plurals.hud_pieces_badge, uiState.totalCount, uiState.totalCount),
-                topColor = StorybookPalette.ButtonBlueTop,
-                bottomColor = StorybookPalette.ButtonBlueBottom,
-                onClick = { viewModel.advanceToNextLevel() }
-            )
-        } else {
-            StorybookBadgePill(
-                label = pluralStringResource(R.plurals.hud_pieces_badge, uiState.totalCount, uiState.totalCount),
-                containerColor = StorybookPalette.ButtonBlueTop
-            )
-        }
+        StorybookBadgePill(
+            label = pluralStringResource(R.plurals.hud_pieces_badge, uiState.totalCount, uiState.totalCount),
+            containerColor = StorybookPalette.ButtonBlueTop
+        )
     }
 }
 
@@ -349,7 +348,7 @@ private fun PuzzleCelebrationPanel(
     layout: PuzzleLayout,
     uiState: PuzzleUiState,
     winTimerSec: Float,
-    onReplay: () -> Unit,
+    onLevels: () -> Unit,
     onNextPuzzle: () -> Unit
 ) {
     val trayX = with(LocalDensity.current) { layout.tray.x.toDp() }
@@ -393,13 +392,13 @@ private fun PuzzleCelebrationPanel(
         if (!layout.isLandscape && layout.tray.w > WIDE_CELEBRATION_TRAY_WIDTH_DP * layout.density) {
             Row(horizontalArrangement = Arrangement.spacedBy(CELEBRATION_BTN_ROW_GAP_DP.dp)) {
                 StorybookPillButton(
-                    label = stringResource(R.string.win_play_again),
+                    label = stringResource(R.string.win_levels),
                     topColor = StorybookPalette.ButtonBlueTop,
                     bottomColor = StorybookPalette.ButtonBlueBottom,
-                    onClick = onReplay
+                    onClick = onLevels
                 )
                 StorybookPillButton(
-                    label = stringResource(R.string.win_next_puzzle),
+                    label = stringResource(R.string.win_next),
                     topColor = StorybookPalette.ButtonPinkTop,
                     bottomColor = StorybookPalette.ButtonPinkBottom,
                     onClick = onNextPuzzle
@@ -411,16 +410,16 @@ private fun PuzzleCelebrationPanel(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 StorybookPillButton(
-                    label = stringResource(R.string.win_next_puzzle),
+                    label = stringResource(R.string.win_next),
                     topColor = StorybookPalette.ButtonPinkTop,
                     bottomColor = StorybookPalette.ButtonPinkBottom,
                     onClick = onNextPuzzle
                 )
                 StorybookPillButton(
-                    label = stringResource(R.string.win_play_again),
+                    label = stringResource(R.string.win_levels),
                     topColor = StorybookPalette.ButtonBlueTop,
                     bottomColor = StorybookPalette.ButtonBlueBottom,
-                    onClick = onReplay
+                    onClick = onLevels
                 )
             }
         }

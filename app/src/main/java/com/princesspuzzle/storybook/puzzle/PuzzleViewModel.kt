@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.princesspuzzle.storybook.art.ConfettiParticleSystem
 import com.princesspuzzle.storybook.audio.AudioEngine
 import com.princesspuzzle.storybook.audio.NoOpAudioEngine
@@ -55,7 +56,9 @@ private const val SPRITE_PAD_DP = 2f
 private const val GLOW_ACTIVE_EPSILON = 0.01f
 
 class PuzzleViewModel(
-    private val audio: AudioEngine = NoOpAudioEngine
+    initialLevelId: Int = 2,
+    private val audio: AudioEngine = NoOpAudioEngine,
+    private val onLevelCompleted: (Int, Int) -> Unit = { _, _ -> }
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PuzzleUiState())
@@ -82,11 +85,11 @@ class PuzzleViewModel(
         private set
     private var secondBurstTriggered = false
 
-    private var activeLevelId: Int = 2
-    private var activePieceCount: Int = 3
+    private var activeLevelId: Int = initialLevelId
+    private var activePieceCount: Int = PuzzleLevels.getById(initialLevelId).pieceCount
 
     init {
-        loadPuzzle(levelId = 2)
+        loadPuzzle(levelId = initialLevelId)
     }
 
     fun loadPuzzle(levelId: Int) {
@@ -403,6 +406,7 @@ class PuzzleViewModel(
             secondBurstTriggered = false
             audio.playWinFanfare()
             particles.emitCelebrationFireworks(layout.width, layout.height, layout.density)
+            onLevelCompleted(cur.level.id, GameConfig.MAX_STARS)
             _uiState.value = _uiState.value.copy(
                 placedCount = engine.runtimes.size,
                 completed = true,
@@ -428,5 +432,20 @@ class PuzzleViewModel(
     override fun onCleared() {
         audio.release()
         super.onCleared()
+    }
+}
+
+class PuzzleViewModelFactory(
+    private val levelId: Int,
+    private val audio: AudioEngine = NoOpAudioEngine,
+    private val onLevelCompleted: (Int, Int) -> Unit
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return PuzzleViewModel(
+            initialLevelId = levelId,
+            audio = audio,
+            onLevelCompleted = onLevelCompleted
+        ) as T
     }
 }
