@@ -1,15 +1,7 @@
-import {
-  drawLivingCelebrationOverlay,
-  getCachedLevelArtwork
-} from '../art/illustrations';
+import { drawLivingCelebrationOverlay, getCachedLevelArtwork } from '../art/illustrations';
 import { STORYBOOK_INK, traceRoundedRect } from '../art/drawUtils';
 import type { SoundEngine } from '../audio/soundEngine';
-import {
-  computePuzzleLayout,
-  pointInRect,
-  type PuzzleLayout,
-  type Rect
-} from '../core/layout';
+import { computePuzzleLayout, pointInRect, type PuzzleLayout, type Rect } from '../core/layout';
 import { t } from '../i18n';
 import type { ProgressStore } from '../storage/progressStore';
 import type { PurchaseService } from '../storage/purchaseService';
@@ -21,11 +13,7 @@ import {
   drawStarRow,
   ROUNDED_FONT_FAMILY
 } from '../ui/canvasControls';
-import {
-  buildPiecePath2D,
-  sliceJigsawPieces,
-  type JigsawPieceSpec
-} from './jigsawSlicer';
+import { buildPiecePath2D, sliceJigsawPieces, type JigsawPieceSpec } from './jigsawSlicer';
 import { isLevelUnlocked, LEVELS, type LevelDefinition } from './levels';
 import { ParticleSystem } from './particles';
 import {
@@ -180,7 +168,10 @@ export class PuzzleScreen {
     nextLevel: LevelDefinition | null;
   } {
     const tray = this.layout.tray;
-    const btnW = Math.min(180, (tray.w - 36) * (tray.w > 330 && !this.layout.isLandscape ? 0.48 : 0.86));
+    const btnW = Math.min(
+      180,
+      (tray.w - 36) * (tray.w > 330 && !this.layout.isLandscape ? 0.48 : 0.86)
+    );
     const btnH = 48;
 
     const nextCandidate = LEVELS.find((l) => l.id === this.level.id + 1) ?? null;
@@ -209,11 +200,7 @@ export class PuzzleScreen {
     };
   }
 
-  private hitTestPiece(
-    ctx: CanvasRenderingContext2D,
-    px: number,
-    py: number
-  ): PieceRuntime | null {
+  private hitTestPiece(ctx: CanvasRenderingContext2D, px: number, py: number): PieceRuntime | null {
     const candidates = [...this.runtimes]
       .filter((p) => p.status === 'tray' || p.status === 'returning')
       .sort((a, b) => b.zIndex - a.zIndex);
@@ -441,15 +428,7 @@ export class PuzzleScreen {
     const { topBar } = this.layout;
     const { backBtn, soundBtn } = this.getTopButtons(this.layout);
 
-    drawCircleButton(
-      ctx,
-      backBtn.x,
-      backBtn.y,
-      backBtn.r,
-      '#FFFDF9',
-      '#D7F5CD',
-      drawBackArrowIcon
-    );
+    drawCircleButton(ctx, backBtn.x, backBtn.y, backBtn.r, '#FFFDF9', '#D7F5CD', drawBackArrowIcon);
 
     drawCircleButton(
       ctx,
@@ -663,9 +642,7 @@ export class PuzzleScreen {
 
     const { board } = this.layout;
     const popScale =
-      piece.status === 'snapping'
-        ? 1 + Math.sin(piece.snapAnimProgress * Math.PI) * 0.08
-        : 1;
+      piece.status === 'snapping' ? 1 + Math.sin(piece.snapAnimProgress * Math.PI) * 0.08 : 1;
     const totalScale = piece.scale * popScale;
 
     ctx.save();
@@ -736,11 +713,7 @@ export class PuzzleScreen {
     if (!compact) {
       ctx.font = `700 14px ${ROUNDED_FONT_FAMILY}`;
       ctx.fillStyle = 'rgba(106, 73, 110, 0.8)';
-      ctx.fillText(
-        t('win.subheadline', { title: t(this.level.titleKey) }),
-        cx,
-        starY + 68
-      );
+      ctx.fillText(t('win.subheadline', { title: t(this.level.titleKey) }), cx, starY + 68);
     }
 
     drawPillButton(ctx, replayRect, {

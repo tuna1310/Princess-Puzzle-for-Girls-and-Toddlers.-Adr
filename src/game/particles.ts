@@ -13,14 +13,7 @@ export interface Particle {
   gravity: number;
 }
 
-const PASTEL_CONFETTI_COLORS = [
-  '#FF8EC4',
-  '#FFE07A',
-  '#94E0FF',
-  '#CFA8FF',
-  '#A5EB9E',
-  '#FFB997'
-];
+const PASTEL_CONFETTI_COLORS = ['#FF8EC4', '#FFE07A', '#94E0FF', '#CFA8FF', '#A5EB9E', '#FFB997'];
 
 export class ParticleSystem {
   private particles: Particle[] = [];

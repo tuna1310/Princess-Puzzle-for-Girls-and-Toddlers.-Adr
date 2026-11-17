@@ -245,7 +245,7 @@ export function drawStarRow(
   starRadius: number,
   spacing: number
 ): void {
-  const startX = cx - ((totalStars - 1) * spacing) * 0.5;
+  const startX = cx - (totalStars - 1) * spacing * 0.5;
   for (let i = 0; i < totalStars; i++) {
     const sx = startX + i * spacing;
     const earned = i < earnedStars;

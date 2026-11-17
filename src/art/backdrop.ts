@@ -79,23 +79,9 @@ export function drawMeadowBackdrop(
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(0, height * 0.76);
-  ctx.bezierCurveTo(
-    width * 0.3,
-    height * 0.72,
-    width * 0.65,
-    height * 0.85,
-    width,
-    height * 0.8
-  );
+  ctx.bezierCurveTo(width * 0.3, height * 0.72, width * 0.65, height * 0.85, width, height * 0.8);
   ctx.lineTo(width, height * 0.87);
-  ctx.bezierCurveTo(
-    width * 0.64,
-    height * 0.92,
-    width * 0.28,
-    height * 0.79,
-    0,
-    height * 0.83
-  );
+  ctx.bezierCurveTo(width * 0.64, height * 0.92, width * 0.28, height * 0.79, 0, height * 0.83);
   ctx.closePath();
   const streamGrad = ctx.createLinearGradient(0, height * 0.74, width, height * 0.88);
   streamGrad.addColorStop(0, '#8ED7FA');
@@ -109,7 +95,7 @@ export function drawMeadowBackdrop(
   ctx.lineWidth = 2.2;
   ctx.lineCap = 'round';
   for (let i = 0; i < 5; i++) {
-    const t = ((i * 0.21 + time * 0.03) % 1);
+    const t = (i * 0.21 + time * 0.03) % 1;
     const rx = t * width;
     const ry = height * (0.785 + Math.sin(t * Math.PI * 1.4) * 0.04);
     ctx.beginPath();

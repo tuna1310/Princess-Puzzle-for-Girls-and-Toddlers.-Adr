@@ -46,11 +46,8 @@ export class PrincessPuzzleApp {
     this.ctx = context;
 
     this.sound.setEnabled(this.progress.isSoundEnabled());
-    this.hubScreen = new HubScreen(
-      this.progress,
-      this.purchases,
-      this.sound,
-      (level) => this.startLevel(level)
+    this.hubScreen = new HubScreen(this.progress, this.purchases, this.sound, (level) =>
+      this.startLevel(level)
     );
 
     this.handleResize();

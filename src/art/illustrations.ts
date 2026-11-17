@@ -382,7 +382,15 @@ function drawBunnyPrincessScene(ctx: CanvasRenderingContext2D, s: number, _time:
     const sx = s * (0.5 + side * 0.12);
     const sy = s * 0.58;
     ctx.beginPath();
-    ctx.ellipse(sx + side * s * 0.04, sy + s * 0.04, s * 0.042, s * 0.028, side * 0.45, 0, Math.PI * 2);
+    ctx.ellipse(
+      sx + side * s * 0.04,
+      sy + s * 0.04,
+      s * 0.042,
+      s * 0.028,
+      side * 0.45,
+      0,
+      Math.PI * 2
+    );
     ctx.fillStyle = '#FFF7F2';
     ctx.fill();
     ctx.strokeStyle = STORYBOOK_INK;
@@ -797,7 +805,15 @@ function drawLockedPlaceholderScene(
     ball: '#F1B3FF'
   };
 
-  drawHeart(ctx, cx, cy + s * 0.02, s * 0.18, pastelMap[theme] ?? '#E2C3FF', STORYBOOK_INK, s * 0.018);
+  drawHeart(
+    ctx,
+    cx,
+    cy + s * 0.02,
+    s * 0.18,
+    pastelMap[theme] ?? '#E2C3FF',
+    STORYBOOK_INK,
+    s * 0.018
+  );
   drawSparkle(ctx, cx - s * 0.18, cy - s * 0.16, s * 0.045, '#FFFDF2');
   drawSparkle(ctx, cx + s * 0.18, cy - s * 0.15, s * 0.04, '#FFE987');
   ctx.restore();

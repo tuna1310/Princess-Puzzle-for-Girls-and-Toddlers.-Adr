@@ -55,10 +55,7 @@ export function computeSnapTarget(
   };
 }
 
-export function computeSnapRadius(
-  board: PuzzleLayout['board'],
-  spec: JigsawPieceSpec
-): number {
+export function computeSnapRadius(board: PuzzleLayout['board'], spec: JigsawPieceSpec): number {
   const pieceW = spec.cellW * board.w;
   const pieceH = spec.cellH * board.h;
   return Math.max(34, Math.min(pieceW, pieceH) * 0.44);
@@ -117,12 +114,11 @@ export function createPieceRuntimes(
 /**
  * Recalculate target & tray positions seamlessly when the screen resizes or rotates.
  */
-export function syncPiecesToLayout(
-  runtimes: PieceRuntime[],
-  layout: PuzzleLayout
-): void {
+export function syncPiecesToLayout(runtimes: PieceRuntime[], layout: PuzzleLayout): void {
   const oldHomeMap = new Map<number, number>();
-  const sortedTray = [...runtimes].sort((a, b) => a.trayHomeY - b.trayHomeY || a.trayHomeX - b.trayHomeX);
+  const sortedTray = [...runtimes].sort(
+    (a, b) => a.trayHomeY - b.trayHomeY || a.trayHomeX - b.trayHomeX
+  );
   sortedTray.forEach((p, i) => oldHomeMap.set(p.spec.id, i));
 
   for (const piece of runtimes) {
@@ -164,10 +160,7 @@ export function computeTouchLiftOffset(
   return -Math.min(48, Math.max(24, pieceH * 0.36));
 }
 
-export function isNearMatchingSlot(
-  piece: PieceRuntime,
-  board: PuzzleLayout['board']
-): boolean {
+export function isNearMatchingSlot(piece: PieceRuntime, board: PuzzleLayout['board']): boolean {
   const dist = Math.hypot(piece.x - piece.snapTargetX, piece.y - piece.snapTargetY);
   return dist <= computeSnapRadius(board, piece.spec);
 }
@@ -297,8 +290,7 @@ export function stepPiecesPhysics(
     }
   }
 
-  const allCompleted =
-    runtimes.length > 0 && runtimes.every((p) => p.status === 'placed');
+  const allCompleted = runtimes.length > 0 && runtimes.every((p) => p.status === 'placed');
 
   return { snappedPieces, returnedPieces, allCompleted };
 }

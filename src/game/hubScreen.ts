@@ -157,7 +157,10 @@ export class HubScreen {
 
     const navR = Math.max(17, Math.min(22, width * 0.05));
     const medallionPad = Math.max(18, Math.min(28, wheelRadius * 0.18));
-    const navOffset = Math.min(width * 0.5 - pad * 0.7 - navR, wheelRadius + medallionPad + navR * 1.1);
+    const navOffset = Math.min(
+      width * 0.5 - pad * 0.7 - navR,
+      wheelRadius + medallionPad + navR * 1.1
+    );
     return {
       width,
       height,
@@ -219,7 +222,8 @@ export class HubScreen {
 
   private tryLaunchSelected(): void {
     const level = this.getSelectedLevel();
-    const unlocked = isLevelUnlocked(level, this.purchases.isUnlockedAll()) && level.implementedInStep2;
+    const unlocked =
+      isLevelUnlocked(level, this.purchases.isUnlockedAll()) && level.implementedInStep2;
     if (unlocked) {
       this.sound.playTap();
       this.onStartLevel(level);

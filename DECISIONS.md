@@ -1,6 +1,7 @@
 # Architectural & Product Decisions (`DECISIONS.md`)
 
 ## 2026-11-17 — Initial Roadmap & Baseline Assumptions
+
 Because no pre-existing `SPEC.md` or `/reference` directory existed in the initialized workspace, the Lead Developer derived the concrete roadmap and resolved open product details from the user brief and attached visual references:
 
 1. **Four-Step Roadmap Alignment**

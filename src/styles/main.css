@@ -19,14 +19,8 @@ body {
   overscroll-behavior: none;
   background: linear-gradient(180deg, #b8e6ff 0%, #eaf6ff 55%, #b8e49b 100%);
   font-family:
-    ui-rounded,
-    'SF Pro Rounded',
-    'Nunito',
-    'Quicksand',
-    'Arial Rounded MT Bold',
-    'Segoe UI',
-    system-ui,
-    sans-serif;
+    ui-rounded, 'SF Pro Rounded', 'Nunito', 'Quicksand', 'Arial Rounded MT Bold', 'Segoe UI',
+    system-ui, sans-serif;
 }
 
 #app {
