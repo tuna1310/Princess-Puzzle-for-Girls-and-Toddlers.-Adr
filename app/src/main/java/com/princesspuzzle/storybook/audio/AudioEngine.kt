@@ -1,7 +1,7 @@
 package com.princesspuzzle.storybook.audio
 
 /**
- * Procedural audio playback contract (implemented with AudioTrack synthesis in Step 6).
+ * Procedural audio playback contract.
  */
 interface AudioEngine {
     fun playPickup()
@@ -13,6 +13,17 @@ interface AudioEngine {
     fun playWinFanfare()
 
     fun playTap()
+
+    fun setAudioPreferences(
+        soundEnabled: Boolean,
+        musicEnabled: Boolean,
+        soundVolume: Float = 1.0f,
+        musicVolume: Float = 0.5f
+    )
+
+    fun pauseMusic()
+
+    fun resumeMusic()
 
     fun release()
 }
@@ -27,6 +38,17 @@ object NoOpAudioEngine : AudioEngine {
     override fun playWinFanfare() = Unit
 
     override fun playTap() = Unit
+
+    override fun setAudioPreferences(
+        soundEnabled: Boolean,
+        musicEnabled: Boolean,
+        soundVolume: Float,
+        musicVolume: Float
+    ) = Unit
+
+    override fun pauseMusic() = Unit
+
+    override fun resumeMusic() = Unit
 
     override fun release() = Unit
 }

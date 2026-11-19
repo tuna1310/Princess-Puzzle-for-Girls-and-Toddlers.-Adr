@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.princesspuzzle.storybook.audio.AudioEngineProvider
 import com.princesspuzzle.storybook.puzzle.PuzzleLevels
 import com.princesspuzzle.storybook.ui.PrincessPuzzleNavHost
 import com.princesspuzzle.storybook.ui.theme.PrincessPuzzleTheme
@@ -36,6 +37,21 @@ class MainActivity : ComponentActivity() {
                 PrincessPuzzleNavHost(initialBenchmarkLevelId = benchmarkLevelId)
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        AudioEngineProvider.get(this).resumeMusic()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        AudioEngineProvider.get(this).pauseMusic()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        AudioEngineProvider.release()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

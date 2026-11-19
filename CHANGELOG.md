@@ -2,6 +2,20 @@
 
 All notable changes to **Princess Storybook Puzzle** are documented here.
 
+## Android Step 6 — Reference App Research & 100% Native Procedural Audio Engine
+- Completed extensive reverse engineering of iOS reference app *Princess Puzzle for Girls and Toddlers* (`id682756571` by Tommy Hass) extracting official screenshots, palette, mechanics, screen flows, and specifications into 6 comprehensive documents (`APP_ANALYSIS.md`, `SCREEN_FLOW.md`, `FEATURE_SPECIFICATION.md`, `UI_COMPONENTS.md`, `GAMEPLAY_MECHANICS.md`, `ANDROID_ARCHITECTURE.md`).
+- Implemented 100% Android Native procedural audio engine using `AudioTrack` (`ProceduralAudioEngine.kt` and `ProceduralAudioSynth.kt`) with zero external audio assets:
+  - Button tap wooden pop (`playTap()`).
+  - Piece pickup ascending chirp (`playPickup()`).
+  - Drop return spring bounce (`playReturnBounce()`).
+  - Major pentatonic ascending celesta chimes across 12 piece placements (`playSnap(placedCount, totalCount)`).
+  - Royal celebration fanfare arpeggio with shimmering tremolo chord (`playWinFanfare()`).
+  - Seamlessly looping, bedtime-safe 12-second storybook melody in C Major (`synthesizeStorybookMelody()`).
+- Added scoped audio engine wrapper (`ScopedAudioEngine.kt`) ensuring level ViewModel teardown never terminates shared application audio or background music.
+- Integrated audio lifecycle callbacks in `MainActivity` (`onResume`, `onPause`, `onDestroy`) and preferences sync in `AppNavHost` (`setAudioPreferences`).
+- Added thorough JUnit test suite covering all waveform synthesis parameters (`ProceduralAudioSynthTest.kt`), passing with 100% success rate across all 8 test classes.
+- Verified Android SDK Lint, `ktlintCheck`, `detekt`, and generated valid APK (`app-debug.apk`, 10.59 MB) and App Bundle (`app-debug.aab`, 8.98 MB).
+
 ## Android Step 5 (Early) & Level Unlock / Transition Fixes
 - Added debug-only unlock override (`BuildConfig.DEBUG && BuildConfig.UNLOCK_ALL_FOR_DEBUG`, strictly `false` in `release` and `releaseTestable`) with an in-grid Debug Lock Preview toggle so testers can both play all 16 levels immediately and preview release lock behavior.
 - Hardened `Next` transitions (`1 -> 2 -> 3 -> 4`), explicit `PuzzleViewModel` keying, `NonCancellable` DataStore star saves, complete runtime/particle/cache resets, `hasNextLevel` celebration button guard on Level 16, and safe `LevelSelect` fallback navigation (`PuzzleTransitionTest.kt`).

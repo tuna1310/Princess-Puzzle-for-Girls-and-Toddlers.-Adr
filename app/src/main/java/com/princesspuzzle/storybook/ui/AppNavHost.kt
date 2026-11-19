@@ -24,6 +24,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.princesspuzzle.storybook.BuildConfig
 import com.princesspuzzle.storybook.R
+import com.princesspuzzle.storybook.audio.AudioEngine
+import com.princesspuzzle.storybook.audio.AudioEngineProvider
+import com.princesspuzzle.storybook.audio.ScopedAudioEngine
 import com.princesspuzzle.storybook.data.AppProgressState
 import com.princesspuzzle.storybook.data.DataStorePurchaseService
 import com.princesspuzzle.storybook.data.ProgressRepository
@@ -107,9 +110,18 @@ fun PrincessPuzzleNavHost(initialBenchmarkLevelId: Int? = null) {
     val context = LocalContext.current
     val progressRepository = remember(context) { ProgressRepositoryProvider.get(context) }
     val purchaseService = remember(progressRepository) { DataStorePurchaseService(progressRepository) }
+    val audioEngine = remember(context) { AudioEngineProvider.get(context) }
     val progressState by progressRepository.progressFlow.collectAsState()
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
+
+    LaunchedEffect(progressState.soundEnabled, progressState.musicEnabled) {
+        audioEngine.setAudioPreferences(
+            soundEnabled = progressState.soundEnabled,
+            musicEnabled = progressState.musicEnabled
+        )
+    }
+
     var debugBypassLocks by remember { mutableStateOf(BuildConfig.DEBUG && BuildConfig.UNLOCK_ALL_FOR_DEBUG) }
     val debugUnlockAll = BuildConfig.DEBUG && BuildConfig.UNLOCK_ALL_FOR_DEBUG && debugBypassLocks
     var lockedNoticeLevelId by remember { mutableStateOf<Int?>(null) }
@@ -120,6 +132,7 @@ fun PrincessPuzzleNavHost(initialBenchmarkLevelId: Int? = null) {
         if (initialBenchmarkLevelId != null) Routes.puzzlePlay(initialBenchmarkLevelId) else Routes.HOME
     }
     val openGate = {
+        audioEngine.playTap()
         grownUpsStatusMessage = null
         showParentalGate = true
     }
@@ -133,63 +146,21 @@ fun PrincessPuzzleNavHost(initialBenchmarkLevelId: Int? = null) {
     ) { grownUpsStatusMessage = it }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        NavHost(navController = navController, startDestination = startRoute) {
-            composable(Routes.HOME) {
-                HomeScreen(
-                    progressState = progressState,
-                    onPlayClick = { navController.navigate(Routes.LEVEL_SELECT) { launchSingleTop = true } },
-                    onGrownUpsClick = openGate
-                )
-            }
-            composable(Routes.LEVEL_SELECT) {
-                LevelSelectScreen(
-                    progressState = progressState,
-                    onBackHome = { navController.popBackStack() },
-                    onSelectLevel = { levelId ->
-                        if (isRouteLevelAccessible(levelId, progressState, debugUnlockAll)) {
-                            lockedNoticeLevelId = null
-                            scope.launch(NonCancellable) { progressRepository.setLastSelectedLevelId(levelId) }
-                            navController.navigate(Routes.puzzlePlay(levelId)) { launchSingleTop = true }
-                        } else {
-                            lockedNoticeLevelId = levelId
-                        }
-                    },
-                    debugUnlockAll = debugUnlockAll,
-                    lockedNoticeLevelId = lockedNoticeLevelId,
-                    onShowLockedNotice = { lockedNoticeLevelId = it },
-                    onDismissLockedNotice = { lockedNoticeLevelId = null },
-                    onOpenGrownUps = openGate,
-                    onToggleDebugUnlock = if (BuildConfig.DEBUG) ({ debugBypassLocks = !debugBypassLocks }) else null
-                )
-            }
-            composable(
-                route = Routes.PUZZLE_PLAY_TEMPLATE,
-                arguments = listOf(navArgument(Routes.ARG_LEVEL_ID) { type = NavType.IntType })
-            ) { backStackEntry ->
-                val levelId = backStackEntry.arguments?.getInt(Routes.ARG_LEVEL_ID) ?: 1
-                val canAccess = isRouteLevelAccessible(levelId, progressState, debugUnlockAll, initialBenchmarkLevelId)
-                if (!canAccess) {
-                    LaunchedEffect(levelId) {
-                        lockedNoticeLevelId = levelId
-                        backToLevels()
-                    }
-                } else {
-                    PuzzlePlayDestination(
-                        levelId = levelId,
-                        owner = backStackEntry,
-                        progressRepository = progressRepository,
-                        debugUnlockAll = debugUnlockAll,
-                        scope = scope,
-                        navController = navController,
-                        onNavigateBackToLevels = backToLevels,
-                        onLockedRedirect = { lockedId ->
-                            lockedNoticeLevelId = lockedId
-                            backToLevels()
-                        }
-                    )
-                }
-            }
-        }
+        MainAppNavGraph(
+            navController = navController,
+            startRoute = startRoute,
+            progressState = progressState,
+            progressRepository = progressRepository,
+            audioEngine = audioEngine,
+            debugUnlockAll = debugUnlockAll,
+            lockedNoticeLevelId = lockedNoticeLevelId,
+            initialBenchmarkLevelId = initialBenchmarkLevelId,
+            scope = scope,
+            openGate = openGate,
+            backToLevels = backToLevels,
+            onLockedNotice = { lockedNoticeLevelId = it },
+            onToggleDebugUnlock = { debugBypassLocks = !debugBypassLocks }
+        )
         GrownUpsModals(
             showParentalGate = showParentalGate,
             showGrownUpsCorner = showGrownUpsCorner,
@@ -207,6 +178,90 @@ fun PrincessPuzzleNavHost(initialBenchmarkLevelId: Int? = null) {
                 grownUpsStatusMessage = null
             }
         )
+    }
+}
+
+@Composable
+@Suppress("LongParameterList")
+private fun MainAppNavGraph(
+    navController: NavHostController,
+    startRoute: String,
+    progressState: AppProgressState,
+    progressRepository: ProgressRepository,
+    audioEngine: AudioEngine,
+    debugUnlockAll: Boolean,
+    lockedNoticeLevelId: Int?,
+    initialBenchmarkLevelId: Int?,
+    scope: CoroutineScope,
+    openGate: () -> Unit,
+    backToLevels: () -> Unit,
+    onLockedNotice: (Int?) -> Unit,
+    onToggleDebugUnlock: () -> Unit
+) {
+    NavHost(navController = navController, startDestination = startRoute) {
+        composable(Routes.HOME) {
+            HomeScreen(
+                progressState = progressState,
+                onPlayClick = {
+                    audioEngine.playTap()
+                    navController.navigate(Routes.LEVEL_SELECT) { launchSingleTop = true }
+                },
+                onGrownUpsClick = openGate
+            )
+        }
+        composable(Routes.LEVEL_SELECT) {
+            LevelSelectScreen(
+                progressState = progressState,
+                onBackHome = {
+                    audioEngine.playTap()
+                    navController.popBackStack()
+                },
+                onSelectLevel = { levelId ->
+                    audioEngine.playTap()
+                    if (isRouteLevelAccessible(levelId, progressState, debugUnlockAll)) {
+                        onLockedNotice(null)
+                        scope.launch(NonCancellable) { progressRepository.setLastSelectedLevelId(levelId) }
+                        navController.navigate(Routes.puzzlePlay(levelId)) { launchSingleTop = true }
+                    } else {
+                        onLockedNotice(levelId)
+                    }
+                },
+                debugUnlockAll = debugUnlockAll,
+                lockedNoticeLevelId = lockedNoticeLevelId,
+                onShowLockedNotice = onLockedNotice,
+                onDismissLockedNotice = { onLockedNotice(null) },
+                onOpenGrownUps = openGate,
+                onToggleDebugUnlock = if (BuildConfig.DEBUG) onToggleDebugUnlock else null
+            )
+        }
+        composable(
+            route = Routes.PUZZLE_PLAY_TEMPLATE,
+            arguments = listOf(navArgument(Routes.ARG_LEVEL_ID) { type = NavType.IntType })
+        ) { backStackEntry ->
+            val levelId = backStackEntry.arguments?.getInt(Routes.ARG_LEVEL_ID) ?: 1
+            val canAccess = isRouteLevelAccessible(levelId, progressState, debugUnlockAll, initialBenchmarkLevelId)
+            if (!canAccess) {
+                LaunchedEffect(levelId) {
+                    onLockedNotice(levelId)
+                    backToLevels()
+                }
+            } else {
+                PuzzlePlayDestination(
+                    levelId = levelId,
+                    owner = backStackEntry,
+                    progressRepository = progressRepository,
+                    audioEngine = audioEngine,
+                    debugUnlockAll = debugUnlockAll,
+                    scope = scope,
+                    navController = navController,
+                    onNavigateBackToLevels = backToLevels,
+                    onLockedRedirect = { lockedId ->
+                        onLockedNotice(lockedId)
+                        backToLevels()
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -290,6 +345,7 @@ private fun PuzzlePlayDestination(
     levelId: Int,
     owner: ViewModelStoreOwner,
     progressRepository: ProgressRepository,
+    audioEngine: AudioEngine,
     debugUnlockAll: Boolean,
     scope: CoroutineScope,
     navController: NavHostController,
@@ -299,7 +355,10 @@ private fun PuzzlePlayDestination(
     val puzzleViewModel: PuzzleViewModel = viewModel(
         viewModelStoreOwner = owner,
         key = "puzzle_play_$levelId",
-        factory = PuzzleViewModelFactory(levelId = levelId) { completedId, stars ->
+        factory = PuzzleViewModelFactory(
+            levelId = levelId,
+            audio = remember(audioEngine) { ScopedAudioEngine(audioEngine) }
+        ) { completedId, stars ->
             scope.launch(NonCancellable) { progressRepository.recordLevelCompletion(completedId, stars) }
         }
     )

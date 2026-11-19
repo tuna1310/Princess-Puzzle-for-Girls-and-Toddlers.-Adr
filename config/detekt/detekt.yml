@@ -45,6 +45,7 @@ style:
       - Preview
     excludes:
       - '**/art/**'
+      - '**/audio/**'
       - '**/test/**'
   MaxLineLength:
     active: true
