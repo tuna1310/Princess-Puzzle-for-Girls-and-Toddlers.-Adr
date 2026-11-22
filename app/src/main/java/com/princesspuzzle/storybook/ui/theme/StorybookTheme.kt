@@ -9,18 +9,18 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import com.princesspuzzle.storybook.art.StorybookPalette
+import com.princesspuzzle.storybook.art.IosThemeColors
 
 private val StorybookColors =
     lightColorScheme(
-        primary = Color(0xFFFF87C2),
-        onPrimary = StorybookPalette.Ink,
-        secondary = Color(0xFFA5E3FF),
-        onSecondary = StorybookPalette.Ink,
-        background = Color(0xFFEAF6FF),
-        onBackground = StorybookPalette.Ink,
-        surface = StorybookPalette.SoftWhite,
-        onSurface = StorybookPalette.Ink
+        primary = IosThemeColors.castlePink,
+        onPrimary = IosThemeColors.inkPrimary,
+        secondary = IosThemeColors.skyTop,
+        onSecondary = IosThemeColors.inkPrimary,
+        background = IosThemeColors.skyMid,
+        onBackground = IosThemeColors.inkPrimary,
+        surface = Color.White,
+        onSurface = IosThemeColors.inkPrimary
     )
 
 private val StorybookTypography =
@@ -30,21 +30,21 @@ private val StorybookTypography =
             fontFamily = FontFamily.SansSerif,
             fontWeight = FontWeight.ExtraBold,
             fontSize = 24.sp,
-            color = StorybookPalette.Ink
+            color = IosThemeColors.inkPrimary
         ),
         titleMedium =
         TextStyle(
             fontFamily = FontFamily.SansSerif,
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
-            color = StorybookPalette.Ink
+            color = IosThemeColors.inkPrimary
         ),
         labelLarge =
         TextStyle(
             fontFamily = FontFamily.SansSerif,
             fontWeight = FontWeight.ExtraBold,
             fontSize = 16.sp,
-            color = StorybookPalette.Ink
+            color = IosThemeColors.inkPrimary
         )
     )
 

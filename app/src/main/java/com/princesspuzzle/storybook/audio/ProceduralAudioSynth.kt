@@ -36,6 +36,14 @@ object ProceduralAudioSynth {
         1046.50
     )
 
+    val BUBBLE_PENTATONIC_FREQUENCIES: DoubleArray = doubleArrayOf(
+        523.25,
+        587.33,
+        659.25,
+        783.99,
+        880.00
+    )
+
     private val MELODY_NOTES = doubleArrayOf(
         523.25,
         659.25,
@@ -54,6 +62,50 @@ object ProceduralAudioSynth {
         587.33,
         523.25
     )
+
+    /**
+     * Soft wooden click/chime for rotating the planet wheel (~45ms).
+     */
+    fun synthesizeWheelTick(sampleRate: Int = SAMPLE_RATE): ShortArray {
+        val durationSec = 0.045
+        val numSamples = (sampleRate * durationSec).toInt()
+        val buffer = ShortArray(numSamples)
+        val freq = 587.33
+        for (i in 0 until numSamples) {
+            val t = i.toDouble() / sampleRate
+            val progress = i.toDouble() / numSamples
+            val attack = (progress / 0.08).coerceAtMost(1.0)
+            val decay = exp(-progress * 3.8)
+            val voice = (sin(TWO_PI * freq * t) + 0.28 * sin(TWO_PI * freq * 2.0 * t)) / 1.28
+            val sample = (voice * attack * decay * 0.45).coerceIn(-1.0, 1.0)
+            buffer[i] = (sample * Short.MAX_VALUE).toInt().toShort()
+        }
+        return buffer
+    }
+
+    /**
+     * Pentatonic sparkly pop for tapping floating surprise bubbles (~110ms).
+     */
+    fun synthesizeBubblePop(pitchIndex: Int, sampleRate: Int = SAMPLE_RATE): ShortArray {
+        val clamped = ((pitchIndex % BUBBLE_PENTATONIC_FREQUENCIES.size) + BUBBLE_PENTATONIC_FREQUENCIES.size) %
+            BUBBLE_PENTATONIC_FREQUENCIES.size
+        val baseFreq = BUBBLE_PENTATONIC_FREQUENCIES[clamped]
+        val durationSec = 0.11
+        val numSamples = (sampleRate * durationSec).toInt()
+        val buffer = ShortArray(numSamples)
+        val switchIdx = (numSamples * 0.36).toInt()
+        for (i in 0 until numSamples) {
+            val t = i.toDouble() / sampleRate
+            val progress = i.toDouble() / numSamples
+            val freq = if (i < switchIdx) baseFreq else baseFreq * 1.5
+            val attack = (progress / 0.08).coerceAtMost(1.0)
+            val decay = exp(-progress * 4.5)
+            val voice = (sin(TWO_PI * freq * t) + 0.25 * sin(TWO_PI * freq * 2.0 * t)) / 1.25
+            val sample = (voice * attack * decay * 0.55).coerceIn(-1.0, 1.0)
+            buffer[i] = (sample * Short.MAX_VALUE).toInt().toShort()
+        }
+        return buffer
+    }
 
     /**
      * Soft wooden pop for button taps (~35ms).

@@ -1,14 +1,19 @@
 package com.princesspuzzle.storybook.audio
 
 /**
- * Procedural audio playback contract.
+ * Procedural audio playback contract including iOS wheel ticks and bubble pops.
  */
+@Suppress("TooManyFunctions")
 interface AudioEngine {
+    fun playWheelRotateTick()
+
     fun playPickup()
 
     fun playReturnBounce()
 
     fun playSnap(placedCount: Int, totalCount: Int)
+
+    fun playBubblePop(pitchIndex: Int)
 
     fun playWinFanfare()
 
@@ -29,11 +34,15 @@ interface AudioEngine {
 }
 
 object NoOpAudioEngine : AudioEngine {
+    override fun playWheelRotateTick() = Unit
+
     override fun playPickup() = Unit
 
     override fun playReturnBounce() = Unit
 
     override fun playSnap(placedCount: Int, totalCount: Int) = Unit
+
+    override fun playBubblePop(pitchIndex: Int) = Unit
 
     override fun playWinFanfare() = Unit
 

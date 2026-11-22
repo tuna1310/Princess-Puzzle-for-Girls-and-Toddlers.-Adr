@@ -1,18 +1,14 @@
 package com.princesspuzzle.storybook
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import com.princesspuzzle.storybook.core.GameConfig
 import com.princesspuzzle.storybook.data.DataStoreProgressRepository
 import com.princesspuzzle.storybook.data.DataStorePurchaseService
 import com.princesspuzzle.storybook.data.ProgressSchemaMigration
+import com.princesspuzzle.storybook.puzzle.ParentalChallenge
 import com.princesspuzzle.storybook.puzzle.PuzzleLevels
-import com.princesspuzzle.storybook.ui.NextLevelDestination
-import com.princesspuzzle.storybook.ui.components.computeParentalHoldProgress
-import com.princesspuzzle.storybook.ui.components.generateParentalMathChallenge
-import com.princesspuzzle.storybook.ui.components.isParentalHoldSatisfied
-import com.princesspuzzle.storybook.ui.components.isParentalMathAnswerValid
-import com.princesspuzzle.storybook.ui.resolveNextLevelDestination
+import com.princesspuzzle.storybook.puzzle.WheelViewModel
 import java.io.File
+import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -31,22 +27,18 @@ class ParentalGateAndSettingsTest {
     val tempFolder = TemporaryFolder()
 
     @Test
-    fun `parental gate requires full 3s hold or exact multiplication answer`() {
-        assertFalse(isParentalHoldSatisfied(0f))
-        assertFalse(isParentalHoldSatisfied(GameConfig.PARENTAL_GATE_HOLD_SECONDS - 0.1f))
-        assertTrue(computeParentalHoldProgress(GameConfig.PARENTAL_GATE_HOLD_SECONDS / 2f) in 0.49f..0.51f)
-        assertTrue(isParentalHoldSatisfied(GameConfig.PARENTAL_GATE_HOLD_SECONDS))
-        assertEquals(1f, computeParentalHoldProgress(GameConfig.PARENTAL_GATE_HOLD_SECONDS + 1f))
-
-        for (seed in 0L..25L) {
-            val challenge = generateParentalMathChallenge(seed)
-            assertTrue(challenge.left in 3..9)
-            assertTrue(challenge.right in 4..9)
-            assertEquals(challenge.left * challenge.right, challenge.expectedAnswer)
-            assertTrue(isParentalMathAnswerValid(challenge, challenge.expectedAnswer.toString()))
-            assertFalse(isParentalMathAnswerValid(challenge, ""))
-            assertFalse(isParentalMathAnswerValid(challenge, "abc"))
-            assertFalse(isParentalMathAnswerValid(challenge, (challenge.expectedAnswer + 1).toString()))
+    fun `parental challenge matches iOS operand bounds and 4 distinct options`() {
+        for (seed in 0..40) {
+            val challenge = ParentalChallenge.generate(Random(seed))
+            assertTrue(challenge.leftOperand in 12..28)
+            assertTrue(challenge.rightOperand in 11..24)
+            assertEquals(4, challenge.options.size)
+            assertEquals(4, challenge.options.toSet().size)
+            assertEquals(challenge.leftOperand + challenge.rightOperand, challenge.correctAnswer)
+            assertTrue(challenge.correctAnswer in challenge.options)
+            assertTrue(challenge.isCorrect(challenge.correctAnswer))
+            val wrong = challenge.options.first { it != challenge.correctAnswer }
+            assertFalse(challenge.isCorrect(wrong))
         }
     }
 
@@ -72,10 +64,8 @@ class ParentalGateAndSettingsTest {
         val unlockedState = repo1.awaitLoaded()
         assertTrue(unlockedState.unlockedAll)
         assertTrue(PuzzleLevels.ALL.all { PuzzleLevels.isUnlocked(it, unlockedState.unlockedAll) })
-        assertEquals(
-            NextLevelDestination.OpenPuzzle(5),
-            resolveNextLevelDestination(4, unlockedState, debugUnlockAll = false)
-        )
+        val wheelVm = WheelViewModel()
+        assertTrue(wheelVm.isLevelUnlocked(PuzzleLevels.getById(5), unlockedState, debugUnlockAll = false))
         scope1.coroutineContext.job.cancelAndJoin()
 
         val scope2 = CoroutineScope(SupervisorJob() + Dispatchers.IO)

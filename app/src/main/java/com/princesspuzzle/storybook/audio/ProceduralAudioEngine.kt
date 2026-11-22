@@ -28,10 +28,12 @@ class ProceduralAudioEngine : AudioEngine {
     @Volatile
     private var isReleased: Boolean = false
 
+    private var wheelTickTrack: AudioTrack? = null
     private var tapTrack: AudioTrack? = null
     private var pickupTrack: AudioTrack? = null
     private var bounceTrack: AudioTrack? = null
     private val snapTracks = mutableListOf<AudioTrack>()
+    private val bubblePopTracks = mutableListOf<AudioTrack>()
     private var fanfareTrack: AudioTrack? = null
     private var musicTrack: AudioTrack? = null
 
@@ -41,6 +43,9 @@ class ProceduralAudioEngine : AudioEngine {
 
     private fun initAudioTracks() {
         try {
+            val tickData = ProceduralAudioSynth.synthesizeWheelTick()
+            wheelTickTrack = buildStaticTrack(tickData, AudioAttributes.CONTENT_TYPE_SONIFICATION)
+
             val tapData = ProceduralAudioSynth.synthesizeTap()
             tapTrack = buildStaticTrack(tapData, AudioAttributes.CONTENT_TYPE_SONIFICATION)
 
@@ -55,6 +60,14 @@ class ProceduralAudioEngine : AudioEngine {
                 val track = buildStaticTrack(snapData, AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 if (track != null) {
                     snapTracks.add(track)
+                }
+            }
+
+            for (i in 0 until ProceduralAudioSynth.BUBBLE_PENTATONIC_FREQUENCIES.size) {
+                val bubbleData = ProceduralAudioSynth.synthesizeBubblePop(i)
+                val track = buildStaticTrack(bubbleData, AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                if (track != null) {
+                    bubblePopTracks.add(track)
                 }
             }
 
@@ -124,6 +137,10 @@ class ProceduralAudioEngine : AudioEngine {
         }
     }
 
+    override fun playWheelRotateTick() {
+        playStaticTrack(wheelTickTrack, soundVolume * 0.65f)
+    }
+
     override fun playTap() {
         playStaticTrack(tapTrack, soundVolume * 0.7f)
     }
@@ -140,6 +157,12 @@ class ProceduralAudioEngine : AudioEngine {
         if (snapTracks.isEmpty()) return
         val index = (placedCount - 1).coerceIn(0, snapTracks.lastIndex)
         playStaticTrack(snapTracks[index], soundVolume)
+    }
+
+    override fun playBubblePop(pitchIndex: Int) {
+        if (bubblePopTracks.isEmpty()) return
+        val index = ((pitchIndex % bubblePopTracks.size) + bubblePopTracks.size) % bubblePopTracks.size
+        playStaticTrack(bubblePopTracks[index], soundVolume * 0.9f)
     }
 
     override fun playWinFanfare() {
@@ -200,16 +223,20 @@ class ProceduralAudioEngine : AudioEngine {
             if (isReleased) return
             isReleased = true
             try {
+                wheelTickTrack?.release()
                 tapTrack?.release()
                 pickupTrack?.release()
                 bounceTrack?.release()
                 snapTracks.forEach { it.release() }
                 snapTracks.clear()
+                bubblePopTracks.forEach { it.release() }
+                bubblePopTracks.clear()
                 fanfareTrack?.release()
                 musicTrack?.release()
             } catch (e: IllegalStateException) {
                 Log.w(TAG, "Error releasing AudioTracks", e)
             } finally {
+                wheelTickTrack = null
                 tapTrack = null
                 pickupTrack = null
                 bounceTrack = null

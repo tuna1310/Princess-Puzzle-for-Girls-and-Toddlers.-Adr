@@ -1,54 +1,37 @@
-# Princess Storybook Puzzle (Android)
+# Princess Storybook Puzzle (Android Native)
 
-A kid-safe native **Android** jigsaw puzzle app built with **Kotlin**, **Jetpack Compose**, **Canvas/Path**, and **Gradle Kotlin DSL**, designed for toddlers and young girls aged 1 to 6.
+A kid-safe native **Android** puzzle app built with **Kotlin**, **Jetpack Compose**, **Canvas/Path**, and native `AudioTrack` procedural synthesis, remade 1:1 after the native iOS storybook architecture for toddlers and young girls aged 1 to 6.
 
-> **Reference Prototype**: The earlier Vite + TypeScript + HTML5 Canvas web prototype is archived in [`web-prototype/`](web-prototype/) with full git history for reference.
+> **Reference Archive**: The earlier Vite + TypeScript + HTML5 Canvas web prototype is archived in [`web-prototype/`](web-prototype/) with full git history.
 
-## Key Features (Android Steps 1 & 2)
-- **100% Compose & Canvas UI**: Single `MainActivity` with `SplashScreen` API, immersive fullscreen system bars, `FLAG_KEEP_SCREEN_ON`, and zero XML layouts.
-- **Kid-Safe Privacy**: No `INTERNET` permission, no `ADVERTISING_ID`, no ads, no analytics/tracking, English-only `strings.xml`.
-- **Watertight Jigsaw Slicer (2–12 Pieces)**: Smooth Bezier interlocking puzzle cuts ported cleanly to Kotlin (`JigsawSlicer`).
-- **Zero-Allocation 2D Drag & Bounce Physics**: Frame-driven (`withFrameNanos`) spring/drop/bounce return physics, upward touch-lift offset, magnetic slot glow, anti-stuck timeout & multi-touch isolation, and automatic inactivity hint shimmer.
-- **Responsive Portrait & Landscape**: Preserves active puzzle progress seamlessly across screen rotations via `ViewModel` + `StateFlow`.
+## Key Features
+- **Interactive 16-Puzzle Planet Wheel Hub**: Translucent rotating carousel displaying all 16 original fairy-tale illustrations radially with 12-o'clock focus snapping, glossy blue clockwise / counter-clockwise navigation arrows, sound toggle, active puzzle pill, and `Unlock All` control.
+- **5–9 Anatomical Part Physics Gameplay**: Opaque matte grayscale silhouettes in the upper board and gravity-simulated, tilted puzzle parts distributed across the meadow hills and riverbank below (`PhysicsPuzzleEngine`).
+- **Magnetic Snap & 24 Pop-able Surprise Bubbles**: Zero-latency pointer dragging with magnetic snap tolerances, sparkle bursts, victory bounce wave, **24 floating tap-to-pop soap bubbles**, and `Play Again` / `Next Puzzle`.
+- **Kid-Safe Freemium & Adult Parental Gate**: Levels 1–4 free, Levels 5–16 locked behind an arithmetic `Parents Only` gate (`12..28 + 11..24`) and `$2.99` simulated Unlock / Restore Store (`UNLOCK_ALL_FOR_DEBUG` is restricted strictly to `debug` builds).
+- **100% Native `AudioTrack` Audio Engine**: Wheel ticks, wooden button pops, pickup chirps, bounce springs, ascending celesta snap chimes, 5-note pentatonic bubble pops, royal fanfare, and looping soothing lullaby melody.
+- **Versioned DataStore Persistence (`schema_version = 2`)**: Saves completed slugs, per-level stars, mid-puzzle placed piece IDs, active wheel index, `unlockedAll`, and audio settings across restarts and schema migrations.
 
 ## Commands
 
 ```bash
-# Run unit tests
-./gradlew test
+# Run formatting and full verification suite
+./gradlew ktlintFormat
+./gradlew testDebugUnitTest detekt ktlintCheck lintDebug
 
-# Run Android Lint, ktlint, and detekt
-./gradlew lint ktlintCheck detekt
-
-# Build debug APK
-./gradlew assembleDebug
-
-# Install directly to connected Android phone or running emulator
+# Build & install onto connected Android device
 ./gradlew installDebug
 
-# Build release AAB (requires signing env vars for release keystore)
-./gradlew bundleRelease
+# Build & install profileable R8 releaseTestable build (Levels 5-16 strictly locked by default)
+./gradlew installReleaseTestable
 ```
-
-## Installing on a Physical Android Phone via ADB
-1. On your Android phone, open **Settings > About phone** and tap **Build number** 7 times to enable **Developer options**.
-2. Open **Settings > System > Developer options** and enable **USB debugging** (or **Wireless debugging** over Wi-Fi on Android 11+).
-3. Connect via USB (or run `adb pair <ip>:<pair-port>` then `adb connect <ip>:<port>` for Wireless debugging).
-4. Verify your device appears:
-   ```bash
-   adb devices
-   ```
-5. Install and launch:
-   ```bash
-   ./gradlew installDebug
-   ```
 
 ## Project Structure
 - `app/src/main/java/com/princesspuzzle/storybook/`
-  - `core/` — `GameConfig` constants and responsive `PuzzleLayout` solver.
-  - `puzzle/` — `JigsawSlicer`, `PuzzlePhysicsEngine`, `PuzzleLevels`, `PuzzleViewModel`.
-  - `art/` — `MeadowBackdrop`, `StarterIllustrations`, `DrawUtils`, `ConfettiParticles`.
-  - `audio/` — Audio engine interface (synthesizer arriving in Step 6).
-  - `data/` — `PurchaseService` interface & storage contracts.
-  - `ui/` — Compose screens, chunky toddler controls, theme, navigation.
+  - `core/` — `GameConfig` and `GeometryHelpers` (radian wrapping, shortest angular delta, wheel focus index).
+  - `art/` — `IosThemeColors`, `IosMeadowBackdrop` (cached offscreen + pre-baked `BlendMode.Src` dimmed backdrop), `IosVectorPrimitives`, `IosScenesGroupA`, `IosScenesGroupB`, `IosIllustrationRenderer`.
+  - `puzzle/` — `PuzzleLevels`, `PuzzleCatalogData`, `PhysicsPuzzleEngine`, `SurpriseBubbleSystem`, `ParentalGateModels`, `WheelViewModel`, `GameplayViewModel`.
+  - `audio/` — `AudioEngine`, `ScopedAudioEngine`, `ProceduralAudioSynth`, `ProceduralAudioEngine`, `AudioEngineProvider`.
+  - `data/` — `ProgressRepository` (`DataStoreProgressRepository`, `ProgressSchemaMigration`), `PurchaseService`.
+  - `ui/` — `AppNavHost`, `PlanetWheelScreen`, `PuzzleGameplayScreen`, `RotatingPlanetWheel`, `IosButtons`, `ParentalGateModal`, `SurpriseCelebrationBar`.
 - `web-prototype/` — Reference Vite + TypeScript web prototype.

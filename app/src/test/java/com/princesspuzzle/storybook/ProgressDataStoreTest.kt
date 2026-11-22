@@ -29,8 +29,8 @@ class ProgressDataStoreTest {
     val tempFolder = TemporaryFolder()
 
     @Test
-    fun `progress stars unlocked levels and settings persist across DataStore restarts`() = runTest {
-        val storeFile = File(tempFolder.root, "progress_persist.preferences_pb")
+    fun `progress slugs wheel index mid-puzzle pieces and settings persist across cold restart`() = runTest {
+        val storeFile = File(tempFolder.root, "progress_v2_persist.preferences_pb")
 
         val scope1 = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val ds1 = PreferenceDataStoreFactory.create(
@@ -42,21 +42,22 @@ class ProgressDataStoreTest {
         assertEquals(ProgressKeys.CURRENT_SCHEMA_VERSION, initial.schemaVersion)
         assertEquals(PuzzleLevels.DEFAULT_FREE_IDS, initial.unlockedLevelIds)
         assertEquals(0, initial.totalStars)
+        assertEquals(0, initial.lastSelectedWheelIndex)
 
         repo1.recordLevelCompletion(levelId = 2, stars = 3)
-        repo1.recordLevelCompletion(levelId = 2, stars = 1) // Never downgrades earned stars
-        repo1.recordLevelCompletion(levelId = 1, stars = 2)
-        repo1.unlockLevel(5)
+        repo1.recordLevelCompletion(levelId = 2, stars = 1)
+        repo1.saveInProgressPieces(levelId = 3, placedPieceIds = setOf("royal_pony_p0", "royal_pony_p2"))
+        repo1.setLastSelectedWheelIndex(7)
         repo1.setUnlockedAll(true)
         repo1.setSoundEnabled(false)
         repo1.setMusicEnabled(false)
-        repo1.setLastSelectedLevelId(5)
         val saved = repo1.awaitLoaded()
         assertEquals(3, saved.starsFor(2))
-        assertEquals(2, saved.starsFor(1))
+        assertTrue(saved.isLevelCompleted(PuzzleLevels.getById(2)))
+        assertEquals(setOf("royal_pony_p0", "royal_pony_p2"), saved.inProgressPiecesFor(3))
+        assertEquals(7, saved.lastSelectedWheelIndex)
         scope1.coroutineContext.job.cancelAndJoin()
 
-        // Cold reopen against the same backing .preferences_pb file
         val scope2 = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val ds2 = PreferenceDataStoreFactory.create(
             migrations = listOf(ProgressSchemaMigration),
@@ -66,27 +67,31 @@ class ProgressDataStoreTest {
         val reloaded = repo2.awaitLoaded()
         assertEquals(ProgressKeys.CURRENT_SCHEMA_VERSION, reloaded.schemaVersion)
         assertEquals(3, reloaded.starsFor(2))
-        assertEquals(2, reloaded.starsFor(1))
-        assertEquals(5, reloaded.totalStars)
-        assertTrue(5 in reloaded.unlockedLevelIds)
+        assertTrue("princess_brunette" in reloaded.completedLevelSlugs)
+        assertEquals(setOf("royal_pony_p0", "royal_pony_p2"), reloaded.inProgressPiecesFor(3))
+        assertEquals(7, reloaded.lastSelectedWheelIndex)
         assertTrue(reloaded.unlockedAll)
         assertFalse(reloaded.soundEnabled)
         assertFalse(reloaded.musicEnabled)
-        assertEquals(5, reloaded.lastSelectedLevelId)
+
+        repo2.recordLevelCompletion(levelId = 3, stars = 3)
+        val afterWin3 = repo2.awaitLoaded()
+        assertTrue(afterWin3.inProgressPiecesFor(3).isEmpty())
         scope2.coroutineContext.job.cancelAndJoin()
     }
 
     @Test
-    fun `schema migration upgrades unversioned v0 prefs and preserves clamped stars`() = runTest {
-        val storeFile = File(tempFolder.root, "legacy_v0.preferences_pb")
+    fun `schema migration v0_v1 to v2 upgrades stars into completed slugs and wheel index`() = runTest {
+        val storeFile = File(tempFolder.root, "legacy_v1.preferences_pb")
 
-        // Seed legacy unversioned preferences (no schema_version key, out-of-range stars)
         val seedScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val rawStore = PreferenceDataStoreFactory.create(scope = seedScope) { storeFile }
         rawStore.edit { prefs ->
+            prefs[intPreferencesKey("schema_version")] = 1
             prefs[intPreferencesKey("level_stars_2")] = 99
             prefs[intPreferencesKey("level_stars_3")] = 2
             prefs[intPreferencesKey("level_stars_4")] = -5
+            prefs[intPreferencesKey("last_selected_level_id")] = 3
             prefs[booleanPreferencesKey("sound_enabled")] = false
         }
         seedScope.coroutineContext.job.cancelAndJoin()
@@ -103,16 +108,16 @@ class ProgressDataStoreTest {
         assertEquals(GameConfig.MAX_STARS, state.starsFor(2))
         assertEquals(2, state.starsFor(3))
         assertEquals(0, state.starsFor(4))
-        assertEquals(PuzzleLevels.DEFAULT_FREE_IDS, state.unlockedLevelIds)
+        assertTrue("princess_brunette" in state.completedLevelSlugs)
+        assertTrue("royal_pony" in state.completedLevelSlugs)
+        assertEquals(2, state.lastSelectedWheelIndex)
         assertFalse(state.soundEnabled)
-        assertTrue(state.musicEnabled)
-        assertFalse(state.unlockedAll)
         migratedScope.coroutineContext.job.cancelAndJoin()
     }
 
     @Test
     fun `datastore purchase service and progress reset follow lock rules`() = runTest {
-        val storeFile = File(tempFolder.root, "purchase_reset.preferences_pb")
+        val storeFile = File(tempFolder.root, "purchase_reset_v2.preferences_pb")
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val store = PreferenceDataStoreFactory.create(
             migrations = listOf(ProgressSchemaMigration),
@@ -126,15 +131,15 @@ class ProgressDataStoreTest {
         assertTrue(purchaseService.purchaseUnlockAll())
         repo.awaitLoaded()
         assertTrue(purchaseService.isUnlockedAll())
-        assertTrue(PuzzleLevels.isUnlocked(PuzzleLevels.getById(10), purchaseService.isUnlockedAll()))
 
         repo.recordLevelCompletion(1, 3)
-        repo.unlockLevel(6)
+        repo.saveInProgressPieces(2, setOf("princess_brunette_p0"))
         repo.resetProgress()
         val afterReset = repo.awaitLoaded()
         assertEquals(0, afterReset.totalStars)
-        assertEquals(PuzzleLevels.DEFAULT_FREE_IDS, afterReset.unlockedLevelIds)
-        assertEquals(1, afterReset.lastSelectedLevelId)
+        assertTrue(afterReset.completedLevelSlugs.isEmpty())
+        assertTrue(afterReset.inProgressPiecesByLevel.isEmpty())
+        assertEquals(0, afterReset.lastSelectedWheelIndex)
 
         purchaseService.resetSimulatedPurchase()
         val afterPurchaseReset = repo.awaitLoaded()

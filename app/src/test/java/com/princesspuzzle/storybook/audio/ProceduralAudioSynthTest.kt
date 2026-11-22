@@ -5,7 +5,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ProceduralAudioSynthTest {
-
     @Test
     fun snapFrequenciesAreStrictlyAscending() {
         assertEquals(12, ProceduralAudioSynth.SNAP_FREQUENCIES.size)
@@ -14,6 +13,19 @@ class ProceduralAudioSynthTest {
                 ProceduralAudioSynth.SNAP_FREQUENCIES[i] < ProceduralAudioSynth.SNAP_FREQUENCIES[i + 1],
                 "Snap frequency $i must be strictly less than frequency ${i + 1}"
             )
+        }
+    }
+
+    @Test
+    fun wheelTickAndBubblePopBuffersGenerateAudibleEnergy() {
+        val tick = ProceduralAudioSynth.synthesizeWheelTick()
+        assertTrue(tick.size in 700..1500, "Wheel tick should be ~45ms at 22050Hz")
+        assertTrue(tick.maxOf { kotlin.math.abs(it.toInt()) } > 2000)
+
+        for (pitch in 0 until ProceduralAudioSynth.BUBBLE_PENTATONIC_FREQUENCIES.size) {
+            val pop = ProceduralAudioSynth.synthesizeBubblePop(pitch)
+            assertTrue(pop.size in 1800..3200, "Bubble pop should be ~110ms at 22050Hz")
+            assertTrue(pop.maxOf { kotlin.math.abs(it.toInt()) } > 2000)
         }
     }
 
@@ -74,14 +86,20 @@ class ProceduralAudioSynthTest {
 
     @Test
     fun scopedAudioEngineSafelyForwardsCalls() {
+        var wheelCount = 0
         var tapCount = 0
         var pickupCount = 0
         var snapCount = 0
+        var bubbleCount = 0
         var fanfareCount = 0
         var bounceCount = 0
         var released = false
 
         val mock = object : AudioEngine {
+            override fun playWheelRotateTick() {
+                wheelCount++
+            }
+
             override fun playPickup() {
                 pickupCount++
             }
@@ -92,6 +110,10 @@ class ProceduralAudioSynthTest {
 
             override fun playSnap(placedCount: Int, totalCount: Int) {
                 snapCount++
+            }
+
+            override fun playBubblePop(pitchIndex: Int) {
+                bubbleCount++
             }
 
             override fun playWinFanfare() {
@@ -108,27 +130,33 @@ class ProceduralAudioSynthTest {
                 soundVolume: Float,
                 musicVolume: Float
             ) = Unit
+
             override fun pauseMusic() = Unit
+
             override fun resumeMusic() = Unit
+
             override fun release() {
                 released = true
             }
         }
 
         val scoped = ScopedAudioEngine(mock)
+        scoped.playWheelRotateTick()
         scoped.playTap()
         scoped.playPickup()
         scoped.playReturnBounce()
         scoped.playSnap(1, 4)
+        scoped.playBubblePop(2)
         scoped.playWinFanfare()
         scoped.release()
 
+        assertEquals(1, wheelCount)
         assertEquals(1, tapCount)
         assertEquals(1, pickupCount)
         assertEquals(1, bounceCount)
         assertEquals(1, snapCount)
+        assertEquals(1, bubbleCount)
         assertEquals(1, fanfareCount)
-        // Scoped release should NOT release the underlying parent engine!
         assertEquals(false, released)
     }
 }

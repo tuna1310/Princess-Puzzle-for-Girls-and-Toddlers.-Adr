@@ -1,78 +1,89 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Princess Storybook Puzzle</string>
-    <string name="app_title_short">Princess</string>
-    <string name="app_subtitle">Fairy-Tale Picture Puzzles</string>
-    <string name="home_play">Play</string>
-    <string name="home_stars_summary">%1$d / %2$d</string>
-    <string name="home_spin_hint">Spin the wheel and tap Play!</string>
-    <string name="levels_title">Choose a Picture</string>
-    <string name="levels_locked_title">Magic Pack Puzzle</string>
-    <string name="levels_locked_body">Ask a grown-up to unlock all 16 fairy-tale puzzles in Grown-Ups Corner!</string>
-    <string name="levels_locked_named_body">Ask a grown-up to unlock \"%1$s\" and all 16 fairy-tale puzzles in Grown-Ups Corner!</string>
-    <string name="levels_locked_open_grownups">Grown-Ups</string>
-    <string name="dialog_ok">OK</string>
-    <string name="parent_gate_title">Grown-Ups Check</string>
-    <string name="parent_gate_subtitle">Hold for 3 seconds or solve the quick math problem below.</string>
-    <string name="parent_gate_hold_prompt">Hold 3 Seconds</string>
-    <string name="parent_gate_hold_progress">Keep holding… %1$.1fs</string>
-    <string name="parent_gate_or_math">Or type the answer:</string>
-    <string name="parent_gate_math_question">%1$d × %2$d = %3$s</string>
-    <string name="parent_gate_math_blank">\?</string>
-    <string name="parent_gate_math_wrong">Almost! Try the math check again or hold for 3 seconds.</string>
-    <string name="parent_gate_check">Check</string>
-    <string name="parent_gate_clear">Clear</string>
-    <string name="parent_gate_cancel">Cancel</string>
-    <string name="grownups_title">Grown-Ups Corner</string>
-    <string name="grownups_pack_unlocked">Magic Pack Active: All 16 puzzles unlocked!</string>
-    <string name="grownups_pack_locked">Starter Pack: Levels 1–4 free, 5–16 locked.</string>
-    <string name="grownups_unlock_all">Unlock All 16 Puzzles</string>
-    <string name="grownups_restore_purchase">Restore Purchase</string>
-    <string name="grownups_relock_pack">Re-Lock Magic Pack</string>
+
+    <string name="cd_rotate_clockwise">Rotate Wheel Clockwise</string>
+    <string name="cd_rotate_counter_clockwise">Rotate Wheel Counter-Clockwise</string>
+    <string name="cd_mute_sound">Mute Sound</string>
+    <string name="cd_unmute_sound">Unmute Sound</string>
+    <string name="cd_back_to_wheel">Back to Puzzle Wheel</string>
+    <string name="cd_close">Close</string>
+
+    <plurals name="wheel_pieces_tap_play">
+        <item quantity="one">%1$d Piece • Tap to Play</item>
+        <item quantity="other">%1$d Pieces • Tap to Play</item>
+    </plurals>
+    <plurals name="wheel_pieces_tap_unlock">
+        <item quantity="one">%1$d Piece • Tap to Unlock</item>
+        <item quantity="other">%1$d Pieces • Tap to Unlock</item>
+    </plurals>
+    <string name="wheel_unlock_all">Unlock All</string>
+
+    <string name="win_bubbles_prompt">Horray! Tap the Floating Bubbles!</string>
+    <plurals name="win_bubbles_popped">
+        <item quantity="one">• %1$d Popped!</item>
+        <item quantity="other">• %1$d Popped!</item>
+    </plurals>
+    <string name="win_play_again">Play Again</string>
+    <string name="win_next_puzzle">Next Puzzle</string>
+
+    <string name="parent_gate_title">Parents Only</string>
+    <string name="parent_gate_subtitle">Please solve this math question to continue to Unlock All Puzzles:</string>
+    <string name="parent_gate_math_prompt">%1$d + %2$d = ?</string>
+    <string name="parent_gate_math_wrong">Oops! Try the new math question for parents.</string>
+
+    <string name="store_unlock_title">Unlock all puzzles</string>
+    <string name="store_unlock_body">Support us and unlock all 16 physics-enabled fairy-tale princess puzzles with interactive surprise rewards!</string>
+    <string name="store_price_display">$2.99</string>
+    <string name="store_unlock_cta">Unlock All 16 Puzzles — %1$s</string>
+    <string name="store_restore_cta">Restore Previous Purchase</string>
+    <string name="store_status_unlocked">All 16 puzzles unlocked (%1$s)!</string>
+    <string name="store_status_restored">Previous purchase restored! All 16 puzzles unlocked.</string>
+    <string name="store_status_no_purchase">No previous purchase found yet. Tap Unlock All to unlock!</string>
+    <string name="store_status_relocked">Magic Pack re-locked (Levels 1–4 free).</string>
+    <string name="store_status_reset_done">All stars and progress were cleared.</string>
+
     <string name="grownups_sound_label">Sound Effects</string>
     <string name="grownups_music_label">Soothing Music</string>
     <string name="grownups_toggle_on">On</string>
     <string name="grownups_toggle_off">Off</string>
+    <string name="grownups_relock_pack">Re-Lock Magic Pack</string>
     <string name="grownups_reset_progress">Reset Stars &amp; Progress</string>
     <string name="grownups_reset_confirm">Tap Again to Reset All Stars</string>
-    <string name="grownups_exit_app">Exit App</string>
-    <string name="grownups_close">Done</string>
-    <string name="grownups_status_unlocked">All 16 fairy-tale puzzles unlocked!</string>
-    <string name="grownups_status_restored">Purchase restored! All 16 puzzles are open.</string>
-    <string name="grownups_status_no_purchase">No saved purchase yet. Tap Unlock All to unlock all 16!</string>
-    <string name="grownups_status_relocked">Magic Pack re-locked (Levels 1–4 remain free).</string>
-    <string name="grownups_status_reset_done">All earned stars were cleared.</string>
-    <string name="debug_bypass_on_chip">DEBUG: All 16 Open (Tap to Test Locks)</string>
-    <string name="debug_bypass_off_chip">DEBUG: Lock Preview (Tap to Unlock 16)</string>
-    <string name="cd_grownups_button">Grown-ups settings</string>
-    <string name="cd_back_to_home">Back to home</string>
-    <string name="cd_back_to_levels">Back to level select</string>
-    <string name="cd_locked_level">Locked puzzle</string>
-    <string name="hud_progress">%1$d / %2$d</string>
-    <plurals name="hud_pieces_badge">
-        <item quantity="one">%1$d pc</item>
-        <item quantity="other">%1$d pcs</item>
-    </plurals>
-    <string name="puzzle_drag_hint">Drag each piece to the matching spot!</string>
-    <string name="win_headline">Wonderful!</string>
-    <string name="win_subheadline">You finished %1$s!</string>
-    <string name="win_next">Next</string>
-    <string name="win_levels">Levels</string>
 
-    <string name="level_1_title">Starlight Tiara</string>
-    <string name="level_2_title">Clover Bunny Princess</string>
-    <string name="level_3_title">Cloudberry Unicorn</string>
-    <string name="level_4_title">Cupcake Blossom Castle</string>
-    <string name="level_5_title">Pippin Baby Dragon</string>
-    <string name="level_6_title">Butterfly Carriage</string>
-    <string name="level_7_title">Willow &amp; Bluebird</string>
-    <string name="level_8_title">Pearl Mermaid Kitten</string>
-    <string name="level_9_title">Berry Tea Party</string>
-    <string name="level_10_title">Fairy Treehouse</string>
-    <string name="level_11_title">Moonlight Harp</string>
-    <string name="level_12_title">Crystal Ribbon Swan</string>
-    <string name="level_13_title">Garden Pegasus Foal</string>
-    <string name="level_14_title">Lantern Sky Princess</string>
-    <string name="level_15_title">Rainbow Carousel Pony</string>
-    <string name="level_16_title">Grand Storybook Ball</string>
+    <string name="debug_bypass_on_chip">DEBUG: 16/16 Open</string>
+    <string name="debug_bypass_off_chip">DEBUG: Lock 5–16</string>
+
+    <string name="level_1_title">Pink Fairy Castle</string>
+    <string name="level_1_sub">Royal Castle on the Hill</string>
+    <string name="level_2_title">Crown Princess Mia</string>
+    <string name="level_2_sub">Princess with Royal Purse</string>
+    <string name="level_3_title">Royal Pink Pony</string>
+    <string name="level_3_sub">Meadow Pony with Flower</string>
+    <string name="level_4_title">Royal Cherry Ice Cream</string>
+    <string name="level_4_sub">Sweet Swirl Cone</string>
+    <string name="level_5_title">Ruffle Dress Princess</string>
+    <string name="level_5_sub">Blonde Princess Ella</string>
+    <string name="level_6_title">Flower Bouquet Princess</string>
+    <string name="level_6_sub">Princess with Meadow Daisies</string>
+    <string name="level_7_title">Princess White Kitty</string>
+    <string name="level_7_sub">Royal Kitten in Gown</string>
+    <string name="level_8_title">Friendly Golden Dragon</string>
+    <string name="level_8_sub">Guardian of the Bridge</string>
+    <string name="level_9_title">Enchanted Rainbow Palace</string>
+    <string name="level_9_sub">Turquoise &amp; Gold Palace</string>
+    <string name="level_10_title">Magic Blossom &amp; Butterfly</string>
+    <string name="level_10_sub">Spiral Fairy Forest</string>
+    <string name="level_11_title">Royal Pumpkin Carriage</string>
+    <string name="level_11_sub">Enchanted Coach to the Ball</string>
+    <string name="level_12_title">Magic Meadow Unicorn</string>
+    <string name="level_12_sub">Unicorn with Rainbow Mane</string>
+    <string name="level_13_title">Crystal Tiara &amp; Wand</string>
+    <string name="level_13_sub">Princess Royal Treasures</string>
+    <string name="level_14_title">River Mermaid Princess</string>
+    <string name="level_14_sub">Princess of the Blue River</string>
+    <string name="level_15_title">Sleeping Rose Princess</string>
+    <string name="level_15_sub">Princess of the Rose Garden</string>
+    <string name="level_16_title">Grand Royal Ball Princess</string>
+    <string name="level_16_sub">Queen of the Fairy Meadow</string>
 </resources>

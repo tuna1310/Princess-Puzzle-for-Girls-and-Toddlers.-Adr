@@ -55,6 +55,25 @@
       - Hardened `AppNavHost` with explicit `viewModel(key = ...)`, `NonCancellable` progress saves, safe `navigateBackToLevels()` fallback, `hasNextLevel` guard on Level 16, route-level `isRouteLevelAccessible` guard returning locked triggers cleanly to `LevelSelect` with a gentle English notice (no crashes or silent failures).
       - Implemented Step 5 early: dual-mode `ParentalGateOverlay` (continuous 3-second hold OR multiplication challenge with keypad), `GrownUpsSettingsOverlay` (`Unlock All 16 Puzzles`, `Restore Purchase`, `Sound`/`Music` toggles, two-tap `Reset Stars & Progress`, `Re-Lock Magic Pack`, and `Exit App`), backed by `DataStorePurchaseService` and `unlockedAll` persistence.
 
+## 2026-11-22 — 1:1 Native iOS Architectural Remake (`PlanetWheel` + `PhysicsPuzzle` + `SurpriseBubbles`)
+12. **Carousel Hub & 2D Anatomical Rigid-Body Physics Remake**
+    - **Decision**: Replaced the temporary Home + Grid + Square-Jigsaw pipeline with the 1:1 iOS structure (`AppNavHost` routing solely between `PlanetWheelScreen` and `PuzzleGameplayScreen` + `ParentalGateModal`):
+      - `PlanetWheelScreen` & `RotatingPlanetWheel`: 16 radial puzzles orbiting at `WHEEL_ORBIT_RADIUS_RATIO = 0.36f` (`WHEEL_ITEM_SIZE_RATIO = 0.17f`, `1.24x` focused scale) around a pastel pink-to-cream inner sphere, clockwise/counter-clockwise curved blue arrow buttons, wheel tick synthesis, and `Unlock All` / compact bottom HUD.
+      - `PuzzleCatalogData` & `PuzzleLevels`: Converted all 16 levels to exact iOS `slugId`s (`castle_pink` .. `grand_ball_princess`) with 5–9 normalized anatomical/object parts layered by `zIndex`.
+      - `IosIllustrationRenderer` & `IosVectorPrimitives`: Pre-rendered native color bitmaps and opaque matte soft-gray silhouettes (`(lum * 0.58 + 92).coerceIn(120, 236)` preserving full source alpha `a` to eliminate overlapping X-ray seams) alongside storybook ballgowns, wavy hair, bangs, and bat wings.
+      - `PhysicsPuzzleEngine` & `SurpriseBubbleSystem`: Implemented 2D gravity (`760dp/s²`), staggered meadow shelves (`shelfFloorLiftPx`), horizontal separation (`nudgeLoosePair`) so loose pieces stay cleanly spread, zero-latency `awaitEachGesture` magnetic snap (`28dp`/`38dp`), and 24 floating pop-able surprise bubbles with 5-note pentatonic pops (`playBubblePop`).
+      - `DataStoreProgressRepository`: Upgraded to `CURRENT_SCHEMA_VERSION = 2` persisting `completedLevelSlugs`, `lastSelectedWheelIndex`, and `inProgressPiecesByLevel`, with automatic migration from v0/v1 preferences (`ProgressSchemaMigration`).
+
+13. **120Hz `SM_A236E` Hardware Verification & Static Layer GPU Optimization (`releaseTestable`)**
+    - **Device Setup**: Physical device `SM_A236E` (`R5CWA26LE6N`, `1080x2408`, Android 14, `120.00001 Hz` modeId 1) running R8-minified, profileable `com.princesspuzzle.storybook.profile` (`releaseTestable`) on 9-piece Level 16 (`Grand Royal Ball Princess`).
+    - **Root Cause Before Polish**: Drawing the full-screen `1080x2408` backdrop + full-screen `0.18f` black overlay + per-frame `Brush.radialGradient` + 9–18 separate sprite draws every tick produced `Janky frames (legacy): 629 / 2042 (30.80%)` (`50th: 12ms`, `90th/95th: 19ms`, `GPU 50th/95th: 8ms/11ms`).
+    - **Fix**: Pre-baked the dimmed meadow + spotlight halo into `IosMeadowBackdrop.getOrRenderGameplayBackdrop(...)` blitted with `BlendMode.Src` (zero full-screen dim overdraw and zero per-frame `Brush` shader allocation) plus `BoardStaticLayerCache` (`boardWidth x boardHeight` offscreen bitmap rebuilt only on placement state change when snap/fade finishes).
+    - **Measured Results (Before -> After on `SM_A236E` 120Hz)**:
+      - `Janky frames`: **`2 / 2042 (0.10%)` -> `1 / 2051 (0.05%)`** (`Number Missed Vsync: 0`, `Number Frame deadline missed: 1`)
+      - `Janky frames (legacy)`: **`30.80% (629/2042) -> 1.37% (28/2051)`**
+      - `50th / 90th / 95th / 99th percentile`: **`12 / 19 / 19 / 20 ms` -> `11 / 12 / 13 / 17 ms`**
+      - `GPU 50th / 95th percentile`: **`8 / 11 ms` -> `8 / 10 ms`**
+
 ---
 
 ## Archive: Earlier Web Prototype Decisions (2026-11-17)

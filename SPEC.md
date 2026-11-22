@@ -1,38 +1,33 @@
 # Product Specification — Princess Storybook Puzzle (Android Native)
 
 ## 1. Overview
-A gentle, kid-safe native **Android** jigsaw puzzle app built with **Kotlin**, **Jetpack Compose**, and **HTML/Canvas-ported procedural storybook art**, crafted for toddlers and young girls aged **1 to 6 years old**.
+A gentle, kid-safe native **Android** puzzle app built with **Kotlin**, **Jetpack Compose**, and procedural storybook art + `AudioTrack` sound synthesis, remade 1:1 in structure, feel, and gameplay after the native iOS storybook app (`PrincessPuzzle`).
 
-The earlier Vite + TypeScript + HTML5 Canvas prototype is preserved in [`web-prototype/`](web-prototype/) purely as a behavioral and visual reference.
+The earlier Vite + TypeScript + HTML5 Canvas web prototype remains preserved in [`web-prototype/`](web-prototype/) purely as an archive reference.
 
-## 2. Core Principles
-- **Zero Punishment**: Never show red X marks, error buzzers, timers, or game-over states. Releasing a piece outside its matching ghost slot gently drops/bounces it back into the tray.
-- **Toddler-First Ergonomics**: Minimum **64dp–80dp** touch targets, generous piece hitboxes larger than visual contours, upward touch-lift offset so fingers do not hide the piece, magnetic snap glow, and subtle inactivity hints.
-- **Anti-Stuck Guarantee**: Viewport clamping, multi-touch single-pointer isolation, `PointerEventType.Cancel` recovery, and return-settle timeouts ensure pieces can never freeze or vanish off-screen.
-- **100% Original Storybook Art & Audio**: Rounded pastel picture-book artwork drawn procedurally with Compose `Canvas` / `Path` (zero Disney IP, zero copied reference assets). Sound effects and soothing background music synthesized on-device via `AudioTrack`.
-- **English-Only UI**: All user-facing strings live in `app/src/main/res/values/strings.xml` and are accessed via `stringResource(...)` (no hardcoded display strings, no `values-vi`).
-- **Kid-Safe Privacy & Immersive Mode**: No `INTERNET` permission, no `ADVERTISING_ID`, no ads, no analytics/tracking. Fullscreen immersive sticky bars, `FLAG_KEEP_SCREEN_ON`, and Parental Gate protection for settings, simulated purchases, and app exit.
-- **Responsive Portrait & Landscape**: Adapts cleanly to phones and tablets across rotations without losing in-progress puzzle state (`ViewModel` + `StateFlow`).
+## 2. Screen Flow & Core Gameplay
+- **Screen 1 — Planet Wheel Hub (`PlanetWheelScreen`)**:
+  - Sunny fairy-tale meadow backdrop with rolling hills, clouds, blossoms, and curved stream (`IosMeadowBackdrop`).
+  - Interactive circular Planet Wheel (`RotatingPlanetWheel`): translucent outer ring (`WHEEL_DIM_ALPHA`), 12-o'clock focus line indicator, **16 radial storybook illustrations** rotated outward along the orbit (`WHEEL_ORBIT_RADIUS_RATIO = 0.36f`), gold lock / completion star badges, and a pastel pink-to-cream inner planet hub previewing the focused puzzle.
+  - Angular drag (`atan2(dx, -dy)`) with rotational tick sound + spring snap, plus glossy curved blue clockwise / counter-clockwise buttons (`CurvedBlueArrowButton`), bottom sound mute toggle (`SoundCircleButton`), active puzzle pill (`Play` / `Unlock`), `Unlock All` / `Settings` button, and a `BuildConfig.DEBUG`-only lock-preview chip.
+- **Screen 2 — 2D Physics Puzzle Gameplay (`PuzzleGameplayScreen`)**:
+  - Dimmed meadow (`0.18f`) with baked board spotlight halo and top-left `GlossyGreenBackButton`.
+  - **Anatomical / Component Puzzle Parts (`5..9` parts per scene)**: Normalized part silhouettes rendered in clean opaque matte grayscale layered by `zIndex` inside the upper target zone.
+  - **2D Gravity & Snap Engine (`PhysicsPuzzleEngine`)**: Unplaced parts settle naturally with gravity (`760dp/s²`), gentle tilt, staggered meadow shelves, river-bank floor collisions, and horizontal separation (`applyLoosePieceSeparation`) so no piece hides underneath another.
+  - **Zero-Latency Drag & Magnetic Snap**: Synchronous pointer tracking with magnetic auto-snap (`28dp` phone / `38dp` tablet), release-snap fallback (`60dp` phone / `80dp` tablet), 10 radial sparkles, ascending pentatonic chimes, wrong-drop spin return without punishment, inactivity glow hints (`7s`), and mid-puzzle DataStore persistence (`inProgressPiecesByLevel`).
+  - **Surprise Celebration (`SurpriseBubbleSystem` & `SurpriseCelebrationBar`)**: Completing a puzzle animates a gentle victory wave across placed parts, spawns **24 floating pop-able soap bubbles** playing 5-note pentatonic pops, displays earned stars (1–3 based on drops), and provides `Play Again` and circular `Next Puzzle`.
+- **Modal — Adult Parental Gate & Simulated Store (`ParentalGateModal`)**:
+  - Step 1 (`Parents Only`): Randomized addition challenge (`12..28 + 11..24`) with 4 choice pills (wrong tap regenerates question).
+  - Step 2 (`Unlock all puzzles — $2.99`): Unlock All CTA (`unlockedAll = true`), Restore Purchase check, Sound/Music toggles, Re-Lock Magic Pack, and two-tap Reset Stars & Progress.
 
 ## 3. Technical Stack & Constraints
-- **Language & UI**: Kotlin (JVM 17), Jetpack Compose + Material 3 (custom storybook styling), Compose Navigation, MVVM / unidirectional data flow (`ViewModel` + `StateFlow`).
-- **SDK Targets**: `minSdk = 24`, `compileSdk = 37`, `targetSdk = 37` (locally installed `platforms/android-37.0`).
-- **Hot-Loop Performance**: `withFrameNanos` physics and confetti updates mutate pre-allocated structures in place with zero per-frame object allocations; level artwork renders once to a cached offscreen `ImageBitmap`.
-- **Persistence & Purchases**: Jetpack DataStore (Preferences) with schema versioning; `PurchaseService` interface backed by `SimulatedPurchaseService` (`unlockedAll` flag in DataStore).
-- **Calibrated Parameters**: All tolerances, physics constants, touch sizes, and timings reside in `core/GameConfig.kt` (no magic numbers).
+- **Language & UI**: Kotlin (JVM 17), Jetpack Compose + Material 3, single `MainActivity` edge-to-edge fullscreen, `FLAG_KEEP_SCREEN_ON`.
+- **SDK Targets**: `minSdk = 24`, `compileSdk = 37`, `targetSdk = 37`.
+- **Performance**: Baked `ImageBitmap` dimmed backdrop drawn via `BlendMode.Src`, `BoardStaticLayerCache`, pre-rendered `PieceBitmapPair` sprites (`colorBitmap` + `silhouetteBitmap`), zero per-frame allocations inside Canvas `draw`.
+- **Persistence**: Jetpack DataStore Preferences (`CURRENT_SCHEMA_VERSION = 2`) with v0/v1 -> v2 schema migration (`ProgressSchemaMigration`).
+- **Release Readiness**: `release` & `releaseTestable` strictly enforce `UNLOCK_ALL_FOR_DEBUG = false` (Levels 1–4 free, Levels 5–16 locked until Parental Gate + Unlock All).
 
-## 4. Development Roadmap (Android Native)
-1. **Step 1 — Prototype Relocation, Android Scaffold & 3-Piece Interactive Demo**: Move web prototype to `web-prototype/` via `git mv`; initialize Gradle KTS project with version catalog, ktlint, detekt, Android Lint, JUnit tests, adaptive launcher icon, SplashScreen, and working 3-piece drag-and-snap demo.
-2. **Step 2 — Jigsaw Slicer Port, Drop/Bounce Physics, Anti-Stuck, Hints & Rotation**: Port watertight 2–12 piece Bezier slicer (`JigsawSlicer`), spring/bounce return physics (`PuzzlePhysicsEngine`), anti-stuck recovery, inactivity shimmer hints, and rotation state preservation.
-3. **Step 3 — 16 Levels & Full Original Illustrations**: Port all 16 level definitions (2 to 12 pieces; Levels 1–4 free, 5–16 locked) and craft 16 unique original illustrations with distinct non-repeating living animations.
-4. **Step 4 — Home Carousel Hub, Level Select & DataStore Persistence**: Port rotating Storybook Carousel Hub, star progression, and versioned DataStore persistence.
-5. **Step 5 — Parental Gate, Simulated IAP & Grown-Ups Settings**: 3-second hold + math fallback Parental Gate protecting Settings, simulated Unlock/Restore (`unlockedAll`), progress reset, and app exit.
-6. **Step 6 — `AudioTrack` Synthesizer & Full `strings.xml` Audit**: Real-time procedural SFX + soothing looping music with lifecycle cleanup.
-7. **Step 7 — Performance Optimization & Release Packaging**: Frame timing / GPU profiling targeting 60 FPS, R8/ProGuard shrinking, env-driven release signing, `bundleRelease` AAB verification.
-
-## 5. Definition of Done (Per Step)
-- `./gradlew test` passes all unit tests.
-- `./gradlew lint ktlintCheck detekt` passes cleanly with zero errors.
-- `./gradlew assembleDebug` succeeds and installs/runs on an Android emulator or physical device (verified with `adb exec-out screencap` when on emulator).
-- `SPEC.md`, `DECISIONS.md`, `README.md`, and `CHANGELOG.md` are up to date.
-- Committed using Conventional Commits.
+## 4. Verification Standard
+- `./gradlew testDebugUnitTest detekt ktlintCheck lintDebug` must pass cleanly with zero failures or errors.
+- `installDebug` and `installReleaseTestable` verified on connected physical Android hardware.
+- `SPEC.md`, `DECISIONS.md`, `README.md`, and `CHANGELOG.md` updated cleanly before Conventional Commit.
